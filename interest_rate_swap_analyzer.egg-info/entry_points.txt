@@ -1,2 +1,0 @@
-[console_scripts]
-swap-analyzer = interest_rate_swap_analyzer.cli:main
