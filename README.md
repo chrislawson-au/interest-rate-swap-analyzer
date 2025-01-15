@@ -39,7 +39,14 @@ swap = InterestRateSwap(
 
 # Analyze swap
 analyzer = InterestRateSwapAnalyzer(party_a, party_b, swap)
-analyzer.print_all()
+results = analyzer.analyze()
+
+# Get formatted report
+print(analyzer.format_analysis_report(results))
+
+# Or get results as DataFrame
+df = analyzer.to_dataframe(results)
+print(df)
 ```
 
 ## Development

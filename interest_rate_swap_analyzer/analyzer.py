@@ -139,41 +139,6 @@ class InterestRateSwapAnalyzer:
             for party in [self.party_a, self.party_b]
         }
 
-    def print_absolute_advantages(self):
-        print("Absolute Advantages:")
-
-        adv = {
-            "type": ["Fixed", "Floating"],
-            "party": [self.party_a, self.party_b]
-        }
-
-        fixed = "None"
-        if self.party_a.fixed_rate < self.party_b.fixed_rate:
-            fixed = self.party_a
-        elif self.party_a.fixed_rate > self.party_b.fixed_rate:
-            fixed = self.party_b
-
-        # Note: Assuming LIBOR is the benchmark floating rate
-        floating = "None"
-        if self.party_a.floating_rate_delta < self.party_b.floating_rate_delta:
-            floating = self.party_a
-        elif self.party_a.floating_rate_delta > self.party_b.floating_rate_delta:
-            floating = self.party_b
-
-        print(pd.DataFrame({"Type": ["Fixed", "Floating"], "Party": [fixed, floating]}))
-
-    def print_comparative_advantages(self):
-        print(pd.DataFrame(
-            {"Party": [self.party_a, self.party_b], 
-             "Fixed Comparative": [self.comparatives[self.party_a].fixed, self.comparatives[self.party_b].fixed], 
-             "Floating Comparative": [self.comparatives[self.party_a].floating, self.comparatives[self.party_b].floating]}
-        ))
-
-        print("Comparative Advantages: (Smaller is better)")
-        for party in [self.party_a, self.party_b]:
-            print(f"  {party.name} has a comparative advantage in the {self.comparative_advantages[party].type} market")
-
-
     def determine_comparative_advantage_for_party(self, party: Party) -> Dict[str, float]:
         if self.comparatives[party].fixed < self.comparatives[party].floating:
             return {"type": "fixed", "rate": self.comparatives[party].fixed}
@@ -208,45 +173,6 @@ class InterestRateSwapAnalyzer:
     def calculate_total_arbitrage_available(self) -> float:
         return self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate
     
-    def print_arbitrage_analysis(self):
-        print()
-        print(f"Total arbitrage available: {self.calculate_total_arbitrage_available():.2%}")
-
-    def print_swap_details(self):
-        print()
-        print("Swap details")
-        print(f" Fixed leg rate: {self.interest_rate_swap.fixed_rate}")
-        print(f" Floating leg rate: {self.interest_rate_swap.floating_rate_delta}")
-
-    def print_analysis(self):
-        """Print a full analysis of the swap from each party's perspective."""
-        for party in [self.party_a, self.party_b]:
-            print()
-            print(f"Actions for {party}")
-            print(f"* borrow from {self.comparative_advantages[party].type} rate market at {party.get_rate(self.comparative_advantages[party].type)}")
-            print(f"* receives {self.interest_rate_swap.get_receiving_position_for_party(party)} rate of {self.interest_rate_swap.get_rate(self.interest_rate_swap.get_receiving_position_for_party(party))} from swap")
-            print(f"* this is a net benefit of {self.get_net_benefit(party)}")
-            print(f"* has {self.interest_rate_swap.get_paying_position_for_party(party)} rate position in swap paying { self.interest_rate_swap.get_rate(self.interest_rate_swap.get_paying_position_for_party(party))}")
-            print(f"* net position is {self.interest_rate_swap.get_rate(self.interest_rate_swap.get_paying_position_for_party(party))} + {self.get_net_benefit(party)} = {self.interest_rate_swap.get_rate(self.interest_rate_swap.get_paying_position_for_party(party)) + self.get_net_benefit(party)}")
-            print(f"* ({party.get_rate(self.comparative_disadvantages[party].type) - (self.interest_rate_swap.get_rate(self.interest_rate_swap.get_paying_position_for_party(party)) + self.get_net_benefit(party))} better than the {party.get_rate(self.comparative_disadvantages[party].type)} avialable on the open market) ")
-
-    def print_party_details(self):
-        print()
-        print(pd.DataFrame({"Party": [self.party_a, self.party_b], "Fixed Rate": [self.party_a.fixed_rate, self.party_b.fixed_rate], "Floating Rate Delta": [self.party_a.floating_rate_delta, self.party_b.floating_rate_delta]}))
-
-    def print_all(self):
-        self.print_party_details()
-
-        self.print_absolute_advantages()
-
-        self.print_comparative_advantages() 
-
-        self.print_arbitrage_analysis()
-
-        self.print_swap_details()
-
-        self.print_analysis()
-
     def format_analysis_report(self, summary: SwapSummary) -> str:
         """Generate formatted analysis report."""
         report = []
