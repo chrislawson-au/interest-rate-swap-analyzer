@@ -97,10 +97,13 @@ class InterestRateSwapAnalyzer:
         """Calculate how much better the swap is compared to market rates."""
         try:
             return (
-                party.get_rate(self.comparative_disadvantages[party].type).rate -
-                (self.interest_rate_swap.get_rate(
-                    self.interest_rate_swap.get_paying_position_for_party(party)
-                ).rate + self.get_net_benefit(party))
+                party.get_rate(self.comparative_disadvantages[party].type).rate
+                - (
+                    self.interest_rate_swap.get_rate(
+                        self.interest_rate_swap.get_paying_position_for_party(party)
+                    ).rate
+                    + self.get_net_benefit(party)
+                )
             )
         except Exception as e:
             logger.error(f"Error calculating market improvement: {str(e)}")
@@ -164,11 +167,12 @@ class InterestRateSwapAnalyzer:
 
     def get_net_benefit(self, party: Party) -> float:
         """Calculate the net benefit for a party in the swap."""
-        try:
-            return party.get_rate(self.comparative_advantages[party].type) - \
-                   self.interest_rate_swap.get_rate(self.interest_rate_swap.get_receiving_position_for_party(party))
-        except Exception as e:
-            raise ValueError(f"Could not calculate net benefit for {party}: {str(e)}")
+        return (
+            party.get_rate(self.comparative_advantages[party].type).rate
+            - self.interest_rate_swap.get_rate(
+                self.interest_rate_swap.get_receiving_position_for_party(party)
+            ).rate
+        )
 
     def calculate_total_arbitrage_available(self) -> float:
         return self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate
@@ -176,16 +180,16 @@ class InterestRateSwapAnalyzer:
     def format_analysis_report(self, summary: SwapSummary) -> str:
         """Generate formatted analysis report."""
         report = []
-        report.append("=== Swap Analysis Report ===")
-        report.append(f"Total arbitrage available: {summary.total_arbitrage:.2%}")
-        report.append(f"\nFixed rate: {summary.fixed_rate:.2%}")
-        report.append(f"Floating rate: {summary.floating_rate:.2%}")
+        report.append("=== Swap Analysis Report ===\n")
+        report.append(f"Total arbitrage available: {summary.total_arbitrage:.2%}\n")
+        report.append(f"Fixed rate: {summary.fixed_rate:.2%}\n")
+        report.append(f"Floating rate: {summary.floating_rate:.2%}\n")
         
         for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
-            report.append(f"\nAnalysis for {party_analysis.party}")
-            report.append(f"Comparative advantage: {party_analysis.comparative_advantage.type}")
-            report.append(f"Net benefit: {party_analysis.net_benefit:.2%}")
-            report.append(f"Market improvement: {party_analysis.market_improvement:.2%}")
+            report.append(f"\n=== Analysis for {party_analysis.party} ===\n")
+            report.append(f"Comparative advantage: {party_analysis.comparative_advantage.type}\n")
+            report.append(f"Net benefit: {party_analysis.net_benefit:.2%}\n")
+            report.append(f"Market improvement: {party_analysis.market_improvement:.2%}\n")
             
         return "\n".join(report)
 
@@ -206,3 +210,4 @@ class InterestRateSwapAnalyzer:
                 summary.party_b_analysis.market_improvement
             ]
         })
+
