@@ -176,22 +176,6 @@ class InterestRateSwapAnalyzer:
 
     def calculate_total_arbitrage_available(self) -> float:
         return self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate
-    
-    def format_analysis_report(self, summary: SwapSummary) -> str:
-        """Generate formatted analysis report."""
-        report = []
-        report.append("=== Swap Analysis Report ===\n")
-        report.append(f"Total arbitrage available: {summary.total_arbitrage:.2%}\n")
-        report.append(f"Fixed rate: {summary.fixed_rate:.2%}\n")
-        report.append(f"Floating rate: {summary.floating_rate:.2%}\n")
-        
-        for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
-            report.append(f"\n=== Analysis for {party_analysis.party} ===\n")
-            report.append(f"Comparative advantage: {party_analysis.comparative_advantage.type}\n")
-            report.append(f"Net benefit: {party_analysis.net_benefit:.2%}\n")
-            report.append(f"Market improvement: {party_analysis.market_improvement:.2%}\n")
-            
-        return "\n".join(report)
 
     def to_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
         """Convert analysis results to a pandas DataFrame."""
@@ -210,4 +194,64 @@ class InterestRateSwapAnalyzer:
                 summary.party_b_analysis.market_improvement
             ]
         })
+
+    def to_details_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
+        """Gather the original inputs and swap details in a user-friendly table."""
+        return pd.DataFrame([{
+            "Party A fixed (market)": f"{self.party_a.fixed_rate.rate:.2%}",
+            "Party A floating (market)": f"{self.party_a.floating_rate_delta.rate:.2%}",
+            "Party B fixed (market)": f"{self.party_b.fixed_rate.rate:.2%}",
+            "Party B floating (market)": f"{self.party_b.floating_rate_delta.rate:.2%}",
+            "Swap Notional": self.interest_rate_swap.notional,
+            "Swap Start": self.interest_rate_swap.start_date,
+            "Swap End": self.interest_rate_swap.end_date,
+            "Swap Fixed Rate": f"{summary.fixed_rate:.2%}",
+            "Swap Floating Rate": f"{summary.floating_rate:.2%}",
+            "Total Arbitrage": f"{summary.total_arbitrage:.2%}"
+        }])
+
+    def to_market_rates_dataframe(self) -> pd.DataFrame:
+        """Return market rates for Party A and Party B in a table."""
+        return pd.DataFrame([
+            {
+                "Party": "Party A",
+                "Fixed Rate (Market)": f"{self.party_a.fixed_rate.rate:.2%}",
+                "Floating Rate (Market)": f"{self.party_a.floating_rate_delta.rate:.2%}"
+            },
+            {
+                "Party": "Party B",
+                "Fixed Rate (Market)": f"{self.party_b.fixed_rate.rate:.2%}",
+                "Floating Rate (Market)": f"{self.party_b.floating_rate_delta.rate:.2%}"
+            }
+        ])
+
+    def to_swap_details_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
+        """Return basic swap details in a table."""
+        return pd.DataFrame([{
+            "Swap Notional": self.interest_rate_swap.notional,
+            "Swap Start": self.interest_rate_swap.start_date,
+            "Swap End": self.interest_rate_swap.end_date,
+            "Swap Fixed Rate": f"{summary.fixed_rate:.2%}",
+            "Swap Floating Rate": f"{summary.floating_rate:.2%}",
+            "Total Arbitrage": f"{summary.total_arbitrage:.2%}",
+        }])
+
+    def to_party_positions_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
+        """Show each party's paying position, paying rate, receiving position, and receiving rate."""
+        data = []
+        for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
+            paying_rate = self.interest_rate_swap.get_rate(party_analysis.paying_position).rate
+            receiving_rate = self.interest_rate_swap.get_rate(party_analysis.receiving_position).rate
+            data.append({
+                "Party": party_analysis.party,
+                "Paying Position": party_analysis.paying_position,
+                "Paying Rate": f"{paying_rate:.2%}",
+                "Receiving Position": party_analysis.receiving_position,
+                "Receiving Rate": f"{receiving_rate:.2%}",
+            })
+        return pd.DataFrame(data)
+
+# def format_analysis_report(self, summary: SwapSummary) -> str:
+#     # Removed or commented out
+#     pass
 

@@ -35,6 +35,10 @@ if st.button("Analyze Swap"):
     analyzer = InterestRateSwapAnalyzer(party_a, party_b, swap)
     summary = analyzer.analyze()
 
-    st.subheader("Analysis Results")
-    st.write(analyzer.format_analysis_report(summary))
-    st.table(analyzer.to_dataframe(summary))
+    st.subheader("Market Rates")
+    st.table(analyzer.to_market_rates_dataframe())
+
+    st.subheader("Swap Details")
+    st.table(analyzer.to_swap_details_dataframe(summary))
+    st.subheader("Party Positions")
+    st.table(analyzer.to_party_positions_dataframe(summary))
