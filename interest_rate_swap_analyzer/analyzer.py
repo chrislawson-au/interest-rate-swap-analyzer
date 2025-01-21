@@ -177,17 +177,6 @@ class InterestRateSwapAnalyzer:
     def calculate_total_arbitrage_available(self) -> float:
         return self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate
 
-    def _format_rate(self, rate: float, position_type: str) -> str:
-        """
-        If position_type is 'floating', display as S+0.75% (or S-... if negative),
-        otherwise display as a normal percentage (e.g. 2.00%).
-        """
-        if position_type == "floating":
-            sign = "+" if rate >= 0 else "-"
-            return f"S{sign}{abs(rate * 100):.2f}%"
-        else:
-            return f"{rate:.2%}"
-
     def to_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
         """Convert analysis results to a pandas DataFrame."""
         return pd.DataFrame({
@@ -226,13 +215,13 @@ class InterestRateSwapAnalyzer:
         return pd.DataFrame([
             {
                 "Party": "Party A",
-                "Fixed Rate (Market)": self._format_rate(self.party_a.fixed_rate.rate, "fixed"),
-                "Floating Rate (Market)": self._format_rate(self.party_a.floating_rate_delta.rate, "floating"),
+                "Fixed Rate (Market)": str(self.party_a.fixed_rate),
+                "Floating Rate (Market)": str(self.party_a.floating_rate_delta),
             },
             {
                 "Party": "Party B",
-                "Fixed Rate (Market)": self._format_rate(self.party_b.fixed_rate.rate, "fixed"),
-                "Floating Rate (Market)": self._format_rate(self.party_b.floating_rate_delta.rate, "floating"),
+                "Fixed Rate (Market)": str(self.party_b.fixed_rate),
+                "Floating Rate (Market)": str(self.party_b.floating_rate_delta),
             }
         ])
 
@@ -242,8 +231,8 @@ class InterestRateSwapAnalyzer:
             "Swap Notional": self.interest_rate_swap.notional,
             "Swap Start": self.interest_rate_swap.start_date,
             "Swap End": self.interest_rate_swap.end_date,
-            "Swap Fixed Rate": self._format_rate(summary.fixed_rate, "fixed"),
-            "Swap Floating Rate": self._format_rate(summary.floating_rate, "floating"),
+            "Swap Fixed Rate": str(summary.fixed_rate),
+            "Swap Floating Rate": str(summary.floating_rate),
             "Total Arbitrage": f"{summary.total_arbitrage:.2%}",
         }])
 
@@ -252,25 +241,18 @@ class InterestRateSwapAnalyzer:
         position from the market, net position, and benefit, with floating rates as 'S+...'."""
         data = []
         for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
-            paying_rate_raw = self.interest_rate_swap.get_rate(party_analysis.paying_position).rate
-            receiving_rate_raw = self.interest_rate_swap.get_rate(party_analysis.receiving_position).rate
+            paying_rate = self.interest_rate_swap.get_rate(party_analysis.paying_position)
+            receiving_rate = self.interest_rate_swap.get_rate(party_analysis.receiving_position)
             data.append({
                 "Party": party_analysis.party,
-                "Market Position": "",
+                "Market Position": party_analysis.party.get_rate(self.comparative_advantages[party_analysis.party].type),
                 "Swap Receiving Position": party_analysis.receiving_position,
-                "Swap Receiving Rate": self._format_rate(
-                    receiving_rate_raw, "floating" if party_analysis.receiving_position == "floating" else "fixed"
-                ),
+                "Swap Receiving Rate": str(receiving_rate), 
                 "Benefit": f"{self.get_net_benefit(party_analysis.party):.2%}",
                 "Swap Paying Position": party_analysis.paying_position,
-                "Swap Paying Rate": self._format_rate(
-                    paying_rate_raw, "floating" if party_analysis.paying_position == "floating" else "fixed"
-                ),
-                "Net Position": f"{(paying_rate_raw - self.get_net_benefit(party_analysis.party)):.2%}",
+                "Swap Paying Rate": str(paying_rate),
+                "Net Position": str(paying_rate - self.get_net_benefit(party_analysis.party)),
             })
         return pd.DataFrame(data)
 
-# def format_analysis_report(self, summary: SwapSummary) -> str:
-#     # Removed or commented out
-#     pass
 

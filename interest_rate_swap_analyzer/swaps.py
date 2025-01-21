@@ -112,6 +112,7 @@ class InterestRate:
         else:
             raise ValueError("Invalid rate type")
 
+
 class Party:
     """Represents a party with preferences for fixed or floating rates."""
     def __init__(
