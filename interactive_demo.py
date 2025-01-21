@@ -6,20 +6,20 @@ from interest_rate_swap_analyzer.analyzer import InterestRateSwapAnalyzer
 st.title("Interactive Interest Rate Swap Demo")
 
 st.sidebar.header("Party A (Available from market)")
-a_fixed = st.sidebar.number_input("Fixed Rate (%)", value=2.0)
-a_float_delta = st.sidebar.number_input("Floating Rate Delta (%)", value=0.5)
+a_fixed = st.sidebar.number_input("Fixed Rate (%)", value=10.5)
+a_float_delta = st.sidebar.number_input("Floating Rate Delta (%)", value=0.75)
 
 st.sidebar.header("Party B (Available from market)")
-b_fixed = st.sidebar.number_input("Fixed Rate (%) ", value=3.0)
-b_float_delta = st.sidebar.number_input("Floating Rate Delta (%)", value=1.0)
+b_fixed = st.sidebar.number_input("Fixed Rate (%) ", value=9.5)
+b_float_delta = st.sidebar.number_input("Floating Rate Delta (%)", value=0.25)
 
 st.sidebar.header("Swap Settings")
 notional = st.sidebar.number_input("Notional", value=1_000_000.0)
 fixed_payer = st.sidebar.selectbox("Fixed Rate Payer", ["Party A", "Party B"])
 start = st.sidebar.date_input("Start Date", value=date.today())
 end = st.sidebar.date_input("End Date", value=date(2030, 1, 1))
-swap_fixed_rate = st.sidebar.number_input("Swap Fixed Rate (%)", value=2.5)
-swap_floating_rate = st.sidebar.number_input("Swap Floating Rate Delta (%)", value=0.75)
+swap_fixed_rate = st.sidebar.number_input("Swap Fixed Rate (%)", value=9.5)
+swap_floating_rate = st.sidebar.number_input("Swap Floating Rate Delta (%)", value=0.0)
 
 if st.button("Analyze Swap"):
     # Build party objects

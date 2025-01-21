@@ -101,6 +101,9 @@ class InterestRate:
         else:
             raise TypeError("Unsupported operand type for >=")
 
+    def __neg__(self):
+        return InterestRate(-self.rate, self.rate_type)
+
     def __str__(self):
         if self.rate_type == "fixed":
             return f"{self.rate:.2%}"

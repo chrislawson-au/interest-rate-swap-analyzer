@@ -167,7 +167,7 @@ class InterestRateSwapAnalyzer:
 
     def get_net_benefit(self, party: Party) -> float:
         """Calculate the net benefit for a party in the swap."""
-        return (
+        return -(
             party.get_rate(self.comparative_advantages[party].type).rate
             - self.interest_rate_swap.get_rate(
                 self.interest_rate_swap.get_receiving_position_for_party(party)
@@ -176,6 +176,17 @@ class InterestRateSwapAnalyzer:
 
     def calculate_total_arbitrage_available(self) -> float:
         return self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate
+
+    def _format_rate(self, rate: float, position_type: str) -> str:
+        """
+        If position_type is 'floating', display as S+0.75% (or S-... if negative),
+        otherwise display as a normal percentage (e.g. 2.00%).
+        """
+        if position_type == "floating":
+            sign = "+" if rate >= 0 else "-"
+            return f"S{sign}{abs(rate * 100):.2f}%"
+        else:
+            return f"{rate:.2%}"
 
     def to_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
         """Convert analysis results to a pandas DataFrame."""
@@ -211,43 +222,51 @@ class InterestRateSwapAnalyzer:
         }])
 
     def to_market_rates_dataframe(self) -> pd.DataFrame:
-        """Return market rates for Party A and Party B in a table."""
+        """Return market rates for Party A and Party B in a table, floating rates as 'S+...'."""
         return pd.DataFrame([
             {
                 "Party": "Party A",
-                "Fixed Rate (Market)": f"{self.party_a.fixed_rate.rate:.2%}",
-                "Floating Rate (Market)": f"{self.party_a.floating_rate_delta.rate:.2%}"
+                "Fixed Rate (Market)": self._format_rate(self.party_a.fixed_rate.rate, "fixed"),
+                "Floating Rate (Market)": self._format_rate(self.party_a.floating_rate_delta.rate, "floating"),
             },
             {
                 "Party": "Party B",
-                "Fixed Rate (Market)": f"{self.party_b.fixed_rate.rate:.2%}",
-                "Floating Rate (Market)": f"{self.party_b.floating_rate_delta.rate:.2%}"
+                "Fixed Rate (Market)": self._format_rate(self.party_b.fixed_rate.rate, "fixed"),
+                "Floating Rate (Market)": self._format_rate(self.party_b.floating_rate_delta.rate, "floating"),
             }
         ])
 
     def to_swap_details_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
-        """Return basic swap details in a table."""
+        """Return basic swap details in a table, floating rates as 'S+...'."""
         return pd.DataFrame([{
             "Swap Notional": self.interest_rate_swap.notional,
             "Swap Start": self.interest_rate_swap.start_date,
             "Swap End": self.interest_rate_swap.end_date,
-            "Swap Fixed Rate": f"{summary.fixed_rate:.2%}",
-            "Swap Floating Rate": f"{summary.floating_rate:.2%}",
+            "Swap Fixed Rate": self._format_rate(summary.fixed_rate, "fixed"),
+            "Swap Floating Rate": self._format_rate(summary.floating_rate, "floating"),
             "Total Arbitrage": f"{summary.total_arbitrage:.2%}",
         }])
 
     def to_party_positions_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
-        """Show each party's paying position, paying rate, receiving position, and receiving rate."""
+        """Show each party's paying position, paying rate, receiving position, receiving rate,
+        position from the market, net position, and benefit, with floating rates as 'S+...'."""
         data = []
         for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
-            paying_rate = self.interest_rate_swap.get_rate(party_analysis.paying_position).rate
-            receiving_rate = self.interest_rate_swap.get_rate(party_analysis.receiving_position).rate
+            paying_rate_raw = self.interest_rate_swap.get_rate(party_analysis.paying_position).rate
+            receiving_rate_raw = self.interest_rate_swap.get_rate(party_analysis.receiving_position).rate
             data.append({
                 "Party": party_analysis.party,
-                "Paying Position": party_analysis.paying_position,
-                "Paying Rate": f"{paying_rate:.2%}",
-                "Receiving Position": party_analysis.receiving_position,
-                "Receiving Rate": f"{receiving_rate:.2%}",
+                "Market Position": "",
+                "Swap Receiving Position": party_analysis.receiving_position,
+                "Swap Receiving Rate": self._format_rate(
+                    receiving_rate_raw, "floating" if party_analysis.receiving_position == "floating" else "fixed"
+                ),
+                "Benefit": f"{self.get_net_benefit(party_analysis.party):.2%}",
+                "Swap Paying Position": party_analysis.paying_position,
+                "Swap Paying Rate": self._format_rate(
+                    paying_rate_raw, "floating" if party_analysis.paying_position == "floating" else "fixed"
+                ),
+                "Net Position": f"{(paying_rate_raw - self.get_net_benefit(party_analysis.party)):.2%}",
             })
         return pd.DataFrame(data)
 
