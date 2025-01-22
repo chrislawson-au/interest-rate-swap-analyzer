@@ -20,7 +20,7 @@ b_fixed = st.sidebar.number_input("Fixed Rate (%) ", value=9.65)
 b_float_delta = st.sidebar.number_input("Floating Rate Delta (%)", value=0.25)
 
 st.sidebar.header("Swap Settings")
-swap_fixed_rate = st.sidebar.number_input("Swap Fixed Rate (%)", value=9.5)
+swap_fixed_rate = st.sidebar.number_input("Swap Fixed Rate (%)", value=9.6)
 swap_floating_rate = st.sidebar.number_input("Swap Floating Rate Delta (%)", value=0.10)
 
 # Build party objects
