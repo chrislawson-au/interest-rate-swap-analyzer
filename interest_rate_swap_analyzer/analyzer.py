@@ -22,7 +22,7 @@ class SwapAnalysisResult:
     """Contains all analysis results for a party in the swap."""
     party: Party
     comparative_advantage: ComparativeAnalysis
-    net_benefit: float
+    market_paying_vs_swap_receiving_benefit: float  # renamed from net_benefit
     paying_position: str
     receiving_position: str
     market_improvement: float
@@ -78,12 +78,12 @@ class InterestRateSwapAnalyzer:
         try:
             paying_position = self.interest_rate_swap.get_paying_position_for_party(party)
             receiving_position = self.interest_rate_swap.get_receiving_position_for_party(party)
-            net_benefit = self.get_net_benefit(party)
+            benefit = self.get_market_paying_vs_swap_receiving_benefit(party)  # renamed from net_benefit
             
             return SwapAnalysisResult(
                 party=party,
                 comparative_advantage=self.comparative_advantages[party],
-                net_benefit=net_benefit,
+                market_paying_vs_swap_receiving_benefit=benefit,  # renamed
                 paying_position=paying_position,
                 receiving_position=receiving_position,
                 market_improvement=self._calculate_market_improvement(party),
@@ -102,7 +102,7 @@ class InterestRateSwapAnalyzer:
                     self.interest_rate_swap.get_rate(
                         self.interest_rate_swap.get_paying_position_for_party(party)
                     ).rate
-                    + self.get_net_benefit(party)
+                    + self.get_market_paying_vs_swap_receiving_benefit(party)  # renamed
                 )
             )
         except Exception as e:
@@ -115,7 +115,7 @@ class InterestRateSwapAnalyzer:
             return (
                 self.interest_rate_swap.get_rate(
                     self.interest_rate_swap.get_paying_position_for_party(party)
-                ).rate + self.get_net_benefit(party)
+                ).rate + self.get_market_paying_vs_swap_receiving_benefit(party)  # renamed
             )
         except Exception as e:
             logger.error(f"Error calculating total cost: {str(e)}")
@@ -165,8 +165,8 @@ class InterestRateSwapAnalyzer:
 
         return {"fixed": fixed_rate_difference.rate, "floating": floating_rate_difference.rate}
 
-    def get_net_benefit(self, party: Party) -> float:
-        """Calculate the net benefit for a party in the swap."""
+    def get_market_paying_vs_swap_receiving_benefit(self, party: Party) -> float:  # renamed from get_net_benefit
+        """Calculate the benefit between market paying rate and swap receiving rate."""
         return -(
             party.get_rate(self.comparative_advantages[party].type).rate
             - self.interest_rate_swap.get_rate(
@@ -186,8 +186,8 @@ class InterestRateSwapAnalyzer:
                 summary.party_b_analysis.comparative_advantage.type
             ],
             'Net Benefit': [
-                summary.party_a_analysis.net_benefit,
-                summary.party_b_analysis.net_benefit
+                summary.party_a_analysis.market_paying_vs_swap_receiving_benefit,  # renamed
+                summary.party_b_analysis.market_paying_vs_swap_receiving_benefit  # renamed
             ],
             'Market Improvement': [
                 summary.party_a_analysis.market_improvement,
@@ -226,13 +226,10 @@ class InterestRateSwapAnalyzer:
         ])
 
     def to_swap_details_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
-        """Return basic swap details in a table, floating rates as 'S+...'."""
+        """Return basic swap details in a table, using formatted rates from the swap object."""
         return pd.DataFrame([{
-            "Swap Notional": self.interest_rate_swap.notional,
-            "Swap Start": self.interest_rate_swap.start_date,
-            "Swap End": self.interest_rate_swap.end_date,
-            "Swap Fixed Rate": str(summary.fixed_rate),
-            "Swap Floating Rate": str(summary.floating_rate),
+            "Swap Fixed Rate": str(self.interest_rate_swap.fixed_rate),
+            "Swap Floating Rate": str(self.interest_rate_swap.floating_rate_delta),
             "Total Arbitrage": f"{summary.total_arbitrage:.2%}",
         }])
 
@@ -243,16 +240,26 @@ class InterestRateSwapAnalyzer:
         for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
             paying_rate = self.interest_rate_swap.get_rate(party_analysis.paying_position)
             receiving_rate = self.interest_rate_swap.get_rate(party_analysis.receiving_position)
+            market_position_type = self.comparative_advantages[party_analysis.party].type
+            market_rate = party_analysis.party.get_rate(market_position_type)
+            
+            # Get the opposite market rate (what they would have paid)
+            opposite_market_position = "floating" if market_position_type == "fixed" else "fixed"
+            opposite_market_rate = party_analysis.party.get_rate(opposite_market_position)
+            
+            net_position = paying_rate - self.get_market_paying_vs_swap_receiving_benefit(party_analysis.party)
+            net_market_benefit = opposite_market_rate.rate - net_position.rate
+            
             data.append({
                 "Party": party_analysis.party,
-                "Market Position": party_analysis.party.get_rate(self.comparative_advantages[party_analysis.party].type),
-                "Swap Receiving Position": party_analysis.receiving_position,
-                "Swap Receiving Rate": str(receiving_rate), 
-                "Benefit": f"{self.get_net_benefit(party_analysis.party):.2%}",
-                "Swap Paying Position": party_analysis.paying_position,
+                # "Swap Paying Position": party_analysis.paying_position,
                 "Swap Paying Rate": str(paying_rate),
-                "Net Position": str(paying_rate - self.get_net_benefit(party_analysis.party)),
+                # "Swap Receiving Position": party_analysis.receiving_position,
+                "Swap Receiving Rate": str(receiving_rate), 
+                "Market Position": str(market_rate),
+                "Benefit": f"{self.get_market_paying_vs_swap_receiving_benefit(party_analysis.party):.2%}",
+                "Net Position": str(net_position),
+                "Net Market Benefit": f"{net_market_benefit:.2%}"
             })
         return pd.DataFrame(data)
-
 

@@ -36,9 +36,10 @@ if st.button("Analyze Swap"):
     summary = analyzer.analyze()
 
     st.subheader("Market Rates")
-    st.table(analyzer.to_market_rates_dataframe())
+    st.table(analyzer.to_market_rates_dataframe().set_index('Party', drop=True))
 
     st.subheader("Swap Details")
-    st.table(analyzer.to_swap_details_dataframe(summary))
+    st.table(analyzer.to_swap_details_dataframe(summary).assign(dummy='').set_index('dummy', drop=True))
+
     st.subheader("Party Positions")
-    st.table(analyzer.to_party_positions_dataframe(summary))
+    st.table(analyzer.to_party_positions_dataframe(summary).set_index('Party', drop=True))
