@@ -175,7 +175,7 @@ class InterestRateSwapAnalyzer:
         )
 
     def calculate_total_arbitrage_available(self) -> float:
-        return self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate
+        return -(self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate)
 
     def to_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
         """Convert analysis results to a pandas DataFrame."""
@@ -230,7 +230,12 @@ class InterestRateSwapAnalyzer:
         return pd.DataFrame([{
             "Swap Fixed Rate": str(self.interest_rate_swap.fixed_rate),
             "Swap Floating Rate": str(self.interest_rate_swap.floating_rate_delta),
-            "Total Arbitrage": f"{summary.total_arbitrage:.2%}",
+        }])
+
+    def to_opportunity_analysis_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
+        """Return the total arbitrage opportunity available in the swap."""
+        return pd.DataFrame([{
+            "Total Arbitrage Available": f"{summary.total_arbitrage:.2%}",
         }])
 
     def to_party_positions_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
