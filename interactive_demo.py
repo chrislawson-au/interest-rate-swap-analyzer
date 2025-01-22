@@ -1,11 +1,10 @@
 import streamlit as st
 from datetime import date
 from interest_rate_swap_analyzer.swaps import Party, InterestRateSwap
-from interest_rate_swap_analyzer.analyzer import InterestRateSwapAnalyzer
+from interest_rate_swap_analyzer.analyzer import InterestRateSwapAnalyzer, OpportunityAnalyzer
 
 # Constants
 NOTIONAL = 1_000_000.0
-FIXED_PAYER = "Party A"
 START_DATE = date.today()
 END_DATE = date(2030, 1, 1)
 
@@ -28,10 +27,19 @@ party_a = Party("Party A", a_fixed / 100, a_float_delta / 100, preference="fixed
 party_b = Party("Party B", b_fixed / 100, b_float_delta / 100, preference="floating")
 
 # Create swap with constant values
-if FIXED_PAYER == "Party A":
-    swap = InterestRateSwap(swap_fixed_rate / 100, swap_floating_rate / 100, NOTIONAL, party_a, party_b, START_DATE, END_DATE)
-else:
-    swap = InterestRateSwap(swap_fixed_rate / 100, swap_floating_rate / 100, NOTIONAL, party_b, party_a, START_DATE, END_DATE)
+opportunity_analyzer = OpportunityAnalyzer(party_a, party_b)
+fixed_payer = opportunity_analyzer.find_fixed_rate_payer()
+floating_payer = party_b if fixed_payer == party_a else party_a
+
+swap = InterestRateSwap(
+    swap_fixed_rate / 100,
+    swap_floating_rate / 100,
+    NOTIONAL,
+    fixed_payer,
+    floating_payer,
+    START_DATE,
+    END_DATE
+)
 
 analyzer = InterestRateSwapAnalyzer(party_a, party_b, swap)
 summary = analyzer.analyze()

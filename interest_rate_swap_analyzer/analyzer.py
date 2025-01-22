@@ -54,6 +54,8 @@ class InterestRateSwapAnalyzer:
         self.party_a = party_a
         self.party_b = party_b
         self.interest_rate_swap = interest_rate_swap
+        # Create the OpportunityAnalyzer here:
+        self.opportunity_analyzer = OpportunityAnalyzer(party_a, party_b)
         logger.info(f"Initializing swap analysis between {party_a} and {party_b}")
 
     def analyze(self) -> SwapSummary:
@@ -63,7 +65,7 @@ class InterestRateSwapAnalyzer:
             party_b_analysis = self._analyze_party(self.party_b)
             
             return SwapSummary(
-                total_arbitrage=self.calculate_total_arbitrage_available(),
+                total_arbitrage=self.opportunity_analyzer.calculate_total_arbitrage_available(),
                 fixed_rate=self.interest_rate_swap.fixed_rate.rate,
                 floating_rate=self.interest_rate_swap.floating_rate_delta.rate,
                 party_a_analysis=party_a_analysis,
@@ -82,7 +84,7 @@ class InterestRateSwapAnalyzer:
             
             return SwapAnalysisResult(
                 party=party,
-                comparative_advantage=self.comparative_advantages[party],
+                comparative_advantage=self.opportunity_analyzer.comparative_advantages[party],
                 market_paying_vs_swap_receiving_benefit=benefit,  # renamed
                 paying_position=paying_position,
                 receiving_position=receiving_position,
@@ -97,7 +99,7 @@ class InterestRateSwapAnalyzer:
         """Calculate how much better the swap is compared to market rates."""
         try:
             return (
-                party.get_rate(self.comparative_disadvantages[party].type).rate
+                party.get_rate(self.opportunity_analyzer.comparative_disadvantages[party].type).rate
                 - (
                     self.interest_rate_swap.get_rate(
                         self.interest_rate_swap.get_paying_position_for_party(party)
@@ -121,61 +123,13 @@ class InterestRateSwapAnalyzer:
             logger.error(f"Error calculating total cost: {str(e)}")
             raise
 
-    @cached_property
-    def comparatives(self) -> Dict[Party, PartyComparatives]:
-        return {
-            party: PartyComparatives(**self.comparatives_for_party(party))
-            for party in [self.party_a, self.party_b]
-        }
-
-    @cached_property
-    def comparative_advantages(self) -> Dict[Party, ComparativeAnalysis]:
-        return {
-            party: ComparativeAnalysis(**self.determine_comparative_advantage_for_party(party))
-            for party in [self.party_a, self.party_b]
-        }
-
-    @cached_property
-    def comparative_disadvantages(self) -> Dict[Party, ComparativeAnalysis]:
-        return {
-            party: ComparativeAnalysis(**self.determine_comparative_disadvantage_for_party(party))
-            for party in [self.party_a, self.party_b]
-        }
-
-    def determine_comparative_advantage_for_party(self, party: Party) -> Dict[str, float]:
-        if self.comparatives[party].fixed < self.comparatives[party].floating:
-            return {"type": "fixed", "rate": self.comparatives[party].fixed}
-        elif self.comparatives[party].floating < self.comparatives[party].fixed:
-            return {"type": "floating", "rate": self.comparatives[party].floating}
-        else:
-            return {"type": "none", "rate": 0}
-            
-    def determine_comparative_disadvantage_for_party(self, party: Party) -> Dict[str, float]:
-        if self.comparatives[party].fixed > self.comparatives[party].floating:
-            return {"type": "fixed", "rate": self.comparatives[party].fixed}
-        elif self.comparatives[party].floating > self.comparatives[party].fixed:
-            return {"type": "floating", "rate": self.comparatives[party].floating}
-        else:
-            return {"type": "none", "rate": 0}
-
-    def comparatives_for_party(self, party: Party) -> Dict[str, float]:
-        counterparty = self.party_b if party == self.party_a else self.party_a
-        fixed_rate_difference = party.fixed_rate - counterparty.fixed_rate
-        floating_rate_difference = party.floating_rate_delta - counterparty.floating_rate_delta
-
-        return {"fixed": fixed_rate_difference.rate, "floating": floating_rate_difference.rate}
-
-    def get_market_paying_vs_swap_receiving_benefit(self, party: Party) -> float:  # renamed from get_net_benefit
-        """Calculate the benefit between market paying rate and swap receiving rate."""
+    def get_market_paying_vs_swap_receiving_benefit(self, party: Party) -> float:
         return -(
-            party.get_rate(self.comparative_advantages[party].type).rate
+            party.get_rate(self.opportunity_analyzer.comparative_advantages[party].type).rate
             - self.interest_rate_swap.get_rate(
                 self.interest_rate_swap.get_receiving_position_for_party(party)
             ).rate
         )
-
-    def calculate_total_arbitrage_available(self) -> float:
-        return -(self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate)
 
     def to_dataframe(self, summary: SwapSummary) -> pd.DataFrame:
         """Convert analysis results to a pandas DataFrame."""
@@ -245,7 +199,7 @@ class InterestRateSwapAnalyzer:
         for party_analysis in [summary.party_a_analysis, summary.party_b_analysis]:
             paying_rate = self.interest_rate_swap.get_rate(party_analysis.paying_position)
             receiving_rate = self.interest_rate_swap.get_rate(party_analysis.receiving_position)
-            market_position_type = self.comparative_advantages[party_analysis.party].type
+            market_position_type = self.opportunity_analyzer.comparative_advantages[party_analysis.party].type
             market_rate = party_analysis.party.get_rate(market_position_type)
             
             # Get the opposite market rate (what they would have paid)
@@ -267,4 +221,69 @@ class InterestRateSwapAnalyzer:
                 "Net Market Benefit": f"{net_market_benefit:.2%}"
             })
         return pd.DataFrame(data)
+
+class OpportunityAnalyzer:
+    def __init__(self, party_a: Party, party_b: Party):
+        self.party_a = party_a
+        self.party_b = party_b
+
+    @cached_property
+    def comparatives(self) -> Dict[Party, PartyComparatives]:
+        return {
+            party: PartyComparatives(**self.comparatives_for_party(party))
+            for party in [self.party_a, self.party_b]
+        }
+
+    @cached_property
+    def comparative_advantages(self) -> Dict[Party, ComparativeAnalysis]:
+        return {
+            party: ComparativeAnalysis(**self.determine_comparative_advantage_for_party(party))
+            for party in [self.party_a, self.party_b]
+        }
+
+    @cached_property
+    def comparative_disadvantages(self) -> Dict[Party, ComparativeAnalysis]:
+        return {
+            party: ComparativeAnalysis(**self.determine_comparative_disadvantage_for_party(party))
+            for party in [self.party_a, self.party_b]
+        }
+
+    def determine_comparative_advantage_for_party(self, party: Party) -> Dict[str, float]:
+        if self.comparatives[party].fixed < self.comparatives[party].floating:
+            return {"type": "fixed", "rate": self.comparatives[party].fixed}
+        elif self.comparatives[party].floating < self.comparatives[party].fixed:
+            return {"type": "floating", "rate": self.comparatives[party].floating}
+        else:
+            return {"type": "none", "rate": 0}
+            
+    def determine_comparative_disadvantage_for_party(self, party: Party) -> Dict[str, float]:
+        if self.comparatives[party].fixed > self.comparatives[party].floating:
+            return {"type": "fixed", "rate": self.comparatives[party].fixed}
+        elif self.comparatives[party].floating > self.comparatives[party].fixed:
+            return {"type": "floating", "rate": self.comparatives[party].floating}
+        else:
+            return {"type": "none", "rate": 0}
+
+    def comparatives_for_party(self, party: Party) -> Dict[str, float]:
+        counterparty = self.party_b if party == self.party_a else self.party_a
+        fixed_diff = party.fixed_rate - counterparty.fixed_rate
+        float_diff = party.floating_rate_delta - counterparty.floating_rate_delta
+        return {"fixed": fixed_diff.rate, "floating": float_diff.rate}
+
+    def calculate_total_arbitrage_available(self) -> float:
+        return -(self.comparative_advantages[self.party_a].rate + self.comparative_advantages[self.party_b].rate)
+
+    def find_fixed_rate_payer(self) -> Party:
+        """
+        Return the party that doesn't have the comparative advantage in fixed rate.
+        If a party's comparative advantage is 'fixed', the other party pays fixed.
+        Fallback to the one with the higher absolute fixed rate if both are the same or 'none'.
+        """
+        if self.comparative_advantages[self.party_a].type == "fixed":
+            return self.party_b
+        elif self.comparative_advantages[self.party_b].type == "fixed":
+            return self.party_a
+        else:
+            # fallback to higher absolute fixed
+            return self.party_a if self.party_a.fixed_rate > self.party_b.fixed_rate else self.party_b
 
