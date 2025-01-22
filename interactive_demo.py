@@ -3,7 +3,7 @@ from datetime import date
 from interest_rate_swap_analyzer.swaps import Party, InterestRateSwap
 from interest_rate_swap_analyzer.analyzer import InterestRateSwapAnalyzer
 
-st.title("Interactive Interest Rate Swap Demo")
+st.title("Interest Rate Swap Analysis")
 
 st.sidebar.header("Party A (Available from market)")
 a_fixed = st.sidebar.number_input("Fixed Rate (%)", value=10.5)
@@ -21,25 +21,24 @@ end = st.sidebar.date_input("End Date", value=date(2030, 1, 1))
 swap_fixed_rate = st.sidebar.number_input("Swap Fixed Rate (%)", value=9.5)
 swap_floating_rate = st.sidebar.number_input("Swap Floating Rate Delta (%)", value=0.0)
 
-if st.button("Analyze Swap"):
-    # Build party objects
-    party_a = Party("Party A", a_fixed / 100, a_float_delta / 100, preference="fixed")
-    party_b = Party("Party B", b_fixed / 100, b_float_delta / 100, preference="floating")
+# Build party objects
+party_a = Party("Party A", a_fixed / 100, a_float_delta / 100, preference="fixed")
+party_b = Party("Party B", b_fixed / 100, b_float_delta / 100, preference="floating")
 
-    # Determine which party is the fixed rate payer
-    if fixed_payer == "Party A":
-        swap = InterestRateSwap(swap_fixed_rate / 100, swap_floating_rate / 100, notional, party_a, party_b, start, end)
-    else:
-        swap = InterestRateSwap(swap_fixed_rate / 100, swap_floating_rate / 100, notional, party_b, party_a, start, end)
+# Determine which party is the fixed rate payer
+if fixed_payer == "Party A":
+    swap = InterestRateSwap(swap_fixed_rate / 100, swap_floating_rate / 100, notional, party_a, party_b, start, end)
+else:
+    swap = InterestRateSwap(swap_fixed_rate / 100, swap_floating_rate / 100, notional, party_b, party_a, start, end)
 
-    analyzer = InterestRateSwapAnalyzer(party_a, party_b, swap)
-    summary = analyzer.analyze()
+analyzer = InterestRateSwapAnalyzer(party_a, party_b, swap)
+summary = analyzer.analyze()
 
-    st.subheader("Market Rates")
-    st.table(analyzer.to_market_rates_dataframe().set_index('Party', drop=True))
+st.subheader("Market Rates")
+st.table(analyzer.to_market_rates_dataframe().set_index('Party', drop=True))
 
-    st.subheader("Swap Details")
-    st.table(analyzer.to_swap_details_dataframe(summary).assign(dummy='').set_index('dummy', drop=True))
+st.subheader("Swap Details")
+st.table(analyzer.to_swap_details_dataframe(summary).assign(dummy='').set_index('dummy', drop=True))
 
-    st.subheader("Party Positions")
-    st.table(analyzer.to_party_positions_dataframe(summary).set_index('Party', drop=True))
+st.subheader("Party Positions")
+st.table(analyzer.to_party_positions_dataframe(summary).set_index('Party', drop=True))
