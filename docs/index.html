@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interest Rate Swap Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        tr:hover {
+            background-color: #f9fafb;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: #3b82f6;
+        }
+        .section-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <h1 class="text-4xl font-bold text-gray-900 mb-8">Interest Rate Swap Analysis</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Party A (Market Rates)</h2>
+                    <div class="input-group">
+                        <label for="a_fixed">Fixed Rate (%)</label>
+                        <input type="number" id="a_fixed" step="0.05" value="10.45">
+                    </div>
+                    <div class="input-group">
+                        <label for="a_float_delta">Floating Rate Delta (%)</label>
+                        <input type="number" id="a_float_delta" step="0.05" value="0.75">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Party B (Market Rates)</h2>
+                    <div class="input-group">
+                        <label for="b_fixed">Fixed Rate (%)</label>
+                        <input type="number" id="b_fixed" step="0.05" value="9.65">
+                    </div>
+                    <div class="input-group">
+                        <label for="b_float_delta">Floating Rate Delta (%)</label>
+                        <input type="number" id="b_float_delta" step="0.05" value="0.25">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Swap Settings</h2>
+                    <div class="input-group">
+                        <label for="swap_fixed_rate">Swap Fixed Rate (%)</label>
+                        <input type="number" id="swap_fixed_rate" step="0.05" value="9.6">
+                    </div>
+                    <div class="input-group">
+                        <label for="swap_floating_rate">Swap Floating Rate Delta (%)</label>
+                        <input type="number" id="swap_floating_rate" step="0.05" value="0.10">
+                    </div>
+                </div>
+
+                <button onclick="analyzeSwap()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                    Analyze Swap
+                </button>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="section-header">Market Rates</h2>
+                    <div class="table-container" id="market_rates_table"></div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="section-header">Opportunity Analysis</h2>
+                    <div class="table-container" id="opportunity_analysis_table"></div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="section-header">Swap Details</h2>
+                    <div class="table-container" id="swap_details_table"></div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="section-header">Party Positions</h2>
+                    <div class="table-container" id="party_positions_table"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const NOTIONAL = 1000000.0;
+        const START_DATE = new Date();
+        const END_DATE = new Date('2030-01-01');
+
+        // InterestRate class
+        class InterestRate {
+            constructor(rate, rateType) {
+                if (typeof rate !== 'number') {
+                    throw new Error('Rate must be a number');
+                }
+                if (rateType !== 'fixed' && rateType !== 'floating') {
+                    throw new Error('Rate type must be fixed or floating');
+                }
+                this.rate = rate;
+                this.rateType = rateType;
+            }
+
+            get isFloating() {
+                return this.rateType === 'floating';
+            }
+
+            add(other) {
+                if (typeof other === 'number') {
+                    return new InterestRate(this.rate + other, this.rateType);
+                } else if (other instanceof InterestRate) {
+                    const newType = this.isFloating || other.isFloating ? 'floating' : 'fixed';
+                    return new InterestRate(this.rate + other.rate, newType);
+                }
+                throw new Error('Unsupported operand type for add');
+            }
+
+            subtract(other) {
+                if (typeof other === 'number') {
+                    return new InterestRate(this.rate - other, this.rateType);
+                } else if (other instanceof InterestRate) {
+                    const newType = this.isFloating || other.isFloating ? 'floating' : 'fixed';
+                    return new InterestRate(this.rate - other.rate, newType);
+                }
+                throw new Error('Unsupported operand type for subtract');
+            }
+
+            toString() {
+                if (this.rateType === 'fixed') {
+                    return (this.rate * 100).toFixed(2) + '%';
+                } else {
+                    const bps = Math.abs(Math.round(this.rate * 10000));
+                    const sign = this.rate >= 0 ? '+' : '-';
+                    return `S${sign}${bps}`;
+                }
+            }
+        }
+
+        // Party class
+        class Party {
+            constructor(name, fixedRate, floatingRateDelta, preference) {
+                this.name = name;
+                this._fixedRate = new InterestRate(fixedRate, 'fixed');
+                this._floatingRateDelta = new InterestRate(floatingRateDelta, 'floating');
+                if (preference !== 'fixed' && preference !== 'floating') {
+                    throw new Error('Preference must be fixed or floating');
+                }
+                this.preference = preference;
+            }
+
+            get fixedRate() {
+                return this._fixedRate;
+            }
+
+            get floatingRateDelta() {
+                return this._floatingRateDelta;
+            }
+
+            getFloatingRate(benchmarkRate) {
+                return benchmarkRate + this.floatingRateDelta.rate;
+            }
+
+            getRate(type) {
+                if (type === 'fixed') {
+                    return this.fixedRate;
+                } else {
+                    return this.floatingRateDelta;
+                }
+            }
+
+            toString() {
+                return this.name;
+            }
+        }
+
+        // InterestRateSwap class
+        class InterestRateSwap {
+            constructor(fixedRate, floatingRateDelta, notional, fixedRatePayer, floatingRatePayer, startDate, endDate) {
+                if (notional <= 0) {
+                    throw new Error('Notional must be positive');
+                }
+                if (startDate >= endDate) {
+                    throw new Error('Start date must be before end date');
+                }
+
+                this._fixedRate = new InterestRate(fixedRate, 'fixed');
+                this._floatingRateDelta = new InterestRate(floatingRateDelta, 'floating');
+                this.notional = notional;
+                this.fixedRatePayer = fixedRatePayer;
+                this.floatingRatePayer = floatingRatePayer;
+                this.startDate = startDate;
+                this.endDate = endDate;
+            }
+
+            get fixedRate() {
+                return this._fixedRate;
+            }
+
+            get floatingRateDelta() {
+                return this._floatingRateDelta;
+            }
+
+            calculateFixedLegPayment() {
+                return this.notional * this.fixedRate.rate / 2;
+            }
+
+            calculateFloatingLegPayment(benchmarkRate) {
+                const floatingRate = benchmarkRate + this.floatingRateDelta.rate;
+                return this.notional * floatingRate / 2;
+            }
+
+            getPayingPositionForParty(party) {
+                return party === this.fixedRatePayer ? 'fixed' : 'floating';
+            }
+
+            getReceivingPositionForParty(party) {
+                if (party === this.fixedRatePayer) {
+                    return 'floating';
+                } else if (party === this.floatingRatePayer) {
+                    return 'fixed';
+                }
+                return null;
+            }
+
+            getRate(type) {
+                if (type === 'fixed') {
+                    return this.fixedRate;
+                } else {
+                    return this.floatingRateDelta;
+                }
+            }
+        }
+
+        // OpportunityAnalyzer class
+        class OpportunityAnalyzer {
+            constructor(partyA, partyB) {
+                this.partyA = partyA;
+                this.partyB = partyB;
+                this._comparatives = null;
+                this._comparativeAdvantages = null;
+                this._comparativeDisadvantages = null;
+            }
+
+            get comparatives() {
+                if (!this._comparatives) {
+                    this._comparatives = {};
+                    this._comparatives[this.partyA.name] = this.comparativesForParty(this.partyA);
+                    this._comparatives[this.partyB.name] = this.comparativesForParty(this.partyB);
+                }
+                return this._comparatives;
+            }
+
+            get comparativeAdvantages() {
+                if (!this._comparativeAdvantages) {
+                    this._comparativeAdvantages = {};
+                    this._comparativeAdvantages[this.partyA.name] = this.determineComparativeAdvantageForParty(this.partyA);
+                    this._comparativeAdvantages[this.partyB.name] = this.determineComparativeAdvantageForParty(this.partyB);
+                }
+                return this._comparativeAdvantages;
+            }
+
+            get comparativeDisadvantages() {
+                if (!this._comparativeDisadvantages) {
+                    this._comparativeDisadvantages = {};
+                    this._comparativeDisadvantages[this.partyA.name] = this.determineComparativeDisadvantageForParty(this.partyA);
+                    this._comparativeDisadvantages[this.partyB.name] = this.determineComparativeDisadvantageForParty(this.partyB);
+                }
+                return this._comparativeDisadvantages;
+            }
+
+            comparativesForParty(party) {
+                const counterparty = party === this.partyA ? this.partyB : this.partyA;
+                const fixedDiff = party.fixedRate.subtract(counterparty.fixedRate);
+                const floatDiff = party.floatingRateDelta.subtract(counterparty.floatingRateDelta);
+                return { fixed: fixedDiff.rate, floating: floatDiff.rate };
+            }
+
+            determineComparativeAdvantageForParty(party) {
+                const comp = this.comparatives[party.name];
+                if (comp.fixed < comp.floating) {
+                    return { type: 'fixed', rate: comp.fixed };
+                } else if (comp.floating < comp.fixed) {
+                    return { type: 'floating', rate: comp.floating };
+                } else {
+                    return { type: 'none', rate: 0 };
+                }
+            }
+
+            determineComparativeDisadvantageForParty(party) {
+                const comp = this.comparatives[party.name];
+                if (comp.fixed > comp.floating) {
+                    return { type: 'fixed', rate: comp.fixed };
+                } else if (comp.floating > comp.fixed) {
+                    return { type: 'floating', rate: comp.floating };
+                } else {
+                    return { type: 'none', rate: 0 };
+                }
+            }
+
+            calculateTotalArbitrageAvailable() {
+                return -(this.comparativeAdvantages[this.partyA.name].rate +
+                         this.comparativeAdvantages[this.partyB.name].rate);
+            }
+
+            findFixedRatePayer() {
+                if (this.comparativeAdvantages[this.partyA.name].type === 'fixed') {
+                    return this.partyB;
+                } else if (this.comparativeAdvantages[this.partyB.name].type === 'fixed') {
+                    return this.partyA;
+                } else {
+                    return this.partyA.fixedRate.rate > this.partyB.fixedRate.rate ? this.partyA : this.partyB;
+                }
+            }
+        }
+
+        // InterestRateSwapAnalyzer class
+        class InterestRateSwapAnalyzer {
+            constructor(partyA, partyB, interestRateSwap) {
+                if (!partyA || !partyB || !interestRateSwap) {
+                    throw new Error('All parameters must be provided');
+                }
+                this.partyA = partyA;
+                this.partyB = partyB;
+                this.interestRateSwap = interestRateSwap;
+                this.opportunityAnalyzer = new OpportunityAnalyzer(partyA, partyB);
+            }
+
+            analyze() {
+                const partyAAnalysis = this.analyzeParty(this.partyA);
+                const partyBAnalysis = this.analyzeParty(this.partyB);
+
+                return {
+                    totalArbitrage: this.opportunityAnalyzer.calculateTotalArbitrageAvailable(),
+                    fixedRate: this.interestRateSwap.fixedRate.rate,
+                    floatingRate: this.interestRateSwap.floatingRateDelta.rate,
+                    partyAAnalysis: partyAAnalysis,
+                    partyBAnalysis: partyBAnalysis
+                };
+            }
+
+            analyzeParty(party) {
+                const payingPosition = this.interestRateSwap.getPayingPositionForParty(party);
+                const receivingPosition = this.interestRateSwap.getReceivingPositionForParty(party);
+                const benefit = this.getMarketPayingVsSwapReceivingBenefit(party);
+
+                return {
+                    party: party,
+                    comparativeAdvantage: this.opportunityAnalyzer.comparativeAdvantages[party.name],
+                    marketPayingVsSwapReceivingBenefit: benefit,
+                    payingPosition: payingPosition,
+                    receivingPosition: receivingPosition,
+                    marketImprovement: this.calculateMarketImprovement(party),
+                    totalCost: this.calculateTotalCost(party)
+                };
+            }
+
+            calculateMarketImprovement(party) {
+                return (
+                    party.getRate(this.opportunityAnalyzer.comparativeDisadvantages[party.name].type).rate
+                    - (
+                        this.interestRateSwap.getRate(
+                            this.interestRateSwap.getPayingPositionForParty(party)
+                        ).rate
+                        + this.getMarketPayingVsSwapReceivingBenefit(party)
+                    )
+                );
+            }
+
+            calculateTotalCost(party) {
+                return (
+                    this.interestRateSwap.getRate(
+                        this.interestRateSwap.getPayingPositionForParty(party)
+                    ).rate + this.getMarketPayingVsSwapReceivingBenefit(party)
+                );
+            }
+
+            getMarketPayingVsSwapReceivingBenefit(party) {
+                return -(
+                    party.getRate(this.opportunityAnalyzer.comparativeAdvantages[party.name].type).rate
+                    - this.interestRateSwap.getRate(
+                        this.interestRateSwap.getReceivingPositionForParty(party)
+                    ).rate
+                );
+            }
+
+            toMarketRatesData() {
+                return [
+                    {
+                        'Party': 'Party A',
+                        'Fixed Rate (Market)': this.partyA.fixedRate.toString(),
+                        'Floating Rate (Market)': this.partyA.floatingRateDelta.toString()
+                    },
+                    {
+                        'Party': 'Party B',
+                        'Fixed Rate (Market)': this.partyB.fixedRate.toString(),
+                        'Floating Rate (Market)': this.partyB.floatingRateDelta.toString()
+                    }
+                ];
+            }
+
+            toOpportunityAnalysisData(summary) {
+                return [{
+                    'Total Arbitrage Available': (summary.totalArbitrage * 100).toFixed(2) + '%'
+                }];
+            }
+
+            toSwapDetailsData(summary) {
+                return [{
+                    'Swap Fixed Rate': this.interestRateSwap.fixedRate.toString(),
+                    'Swap Floating Rate': this.interestRateSwap.floatingRateDelta.toString()
+                }];
+            }
+
+            toPartyPositionsData(summary) {
+                const data = [];
+                for (const partyAnalysis of [summary.partyAAnalysis, summary.partyBAnalysis]) {
+                    const payingRate = this.interestRateSwap.getRate(partyAnalysis.payingPosition);
+                    const receivingRate = this.interestRateSwap.getRate(partyAnalysis.receivingPosition);
+                    const marketPositionType = this.opportunityAnalyzer.comparativeAdvantages[partyAnalysis.party.name].type;
+                    const marketRate = partyAnalysis.party.getRate(marketPositionType);
+
+                    const oppositeMarketPosition = marketPositionType === 'fixed' ? 'floating' : 'fixed';
+                    const oppositeMarketRate = partyAnalysis.party.getRate(oppositeMarketPosition);
+
+                    const netPosition = payingRate.subtract(this.getMarketPayingVsSwapReceivingBenefit(partyAnalysis.party));
+                    const netMarketBenefit = oppositeMarketRate.rate - netPosition.rate;
+
+                    data.push({
+                        'Party': partyAnalysis.party.name,
+                        'Swap Paying Rate': payingRate.toString(),
+                        'Swap Receiving Rate': receivingRate.toString(),
+                        'Market Position': marketRate.toString(),
+                        'Benefit': (this.getMarketPayingVsSwapReceivingBenefit(partyAnalysis.party) * 100).toFixed(2) + '%',
+                        'Net Position': netPosition.toString(),
+                        'Net Market Benefit': (netMarketBenefit * 100).toFixed(2) + '%'
+                    });
+                }
+                return data;
+            }
+        }
+
+        // Helper function to create HTML table
+        function createTable(data, transpose = false) {
+            if (!data || data.length === 0) {
+                return '<p class="text-gray-500">No data available</p>';
+            }
+
+            if (transpose) {
+                // Transpose the data for single-row tables
+                const keys = Object.keys(data[0]);
+                const rows = keys.map(key => {
+                    const row = {};
+                    row[''] = key;
+                    data.forEach((item, idx) => {
+                        row[item['Party'] || `Value ${idx + 1}`] = item[key];
+                    });
+                    return row;
+                });
+                data = rows;
+            }
+
+            const headers = Object.keys(data[0]);
+            let html = '<table>';
+            html += '<thead><tr>';
+            headers.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead>';
+            html += '<tbody>';
+            data.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    html += `<td>${row[header] !== undefined ? row[header] : ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            html += '</table>';
+            return html;
+        }
+
+        // Main analysis function
+        function analyzeSwap() {
+            try {
+                // Get input values
+                const aFixed = parseFloat(document.getElementById('a_fixed').value) / 100;
+                const aFloatDelta = parseFloat(document.getElementById('a_float_delta').value) / 100;
+                const bFixed = parseFloat(document.getElementById('b_fixed').value) / 100;
+                const bFloatDelta = parseFloat(document.getElementById('b_float_delta').value) / 100;
+                const swapFixedRate = parseFloat(document.getElementById('swap_fixed_rate').value) / 100;
+                const swapFloatingRate = parseFloat(document.getElementById('swap_floating_rate').value) / 100;
+
+                // Create party objects
+                const partyA = new Party('Party A', aFixed, aFloatDelta, 'fixed');
+                const partyB = new Party('Party B', bFixed, bFloatDelta, 'floating');
+
+                // Determine who pays fixed
+                const opportunityAnalyzer = new OpportunityAnalyzer(partyA, partyB);
+                const fixedPayer = opportunityAnalyzer.findFixedRatePayer();
+                const floatingPayer = fixedPayer === partyA ? partyB : partyA;
+
+                // Create swap
+                const swap = new InterestRateSwap(
+                    swapFixedRate,
+                    swapFloatingRate,
+                    NOTIONAL,
+                    fixedPayer,
+                    floatingPayer,
+                    START_DATE,
+                    END_DATE
+                );
+
+                // Analyze
+                const analyzer = new InterestRateSwapAnalyzer(partyA, partyB, swap);
+                const summary = analyzer.analyze();
+
+                // Update tables
+                document.getElementById('market_rates_table').innerHTML =
+                    createTable(analyzer.toMarketRatesData(), true);
+
+                document.getElementById('opportunity_analysis_table').innerHTML =
+                    createTable(analyzer.toOpportunityAnalysisData(summary));
+
+                document.getElementById('swap_details_table').innerHTML =
+                    createTable(analyzer.toSwapDetailsData(summary));
+
+                document.getElementById('party_positions_table').innerHTML =
+                    createTable(analyzer.toPartyPositionsData(summary), true);
+
+            } catch (error) {
+                console.error('Error analyzing swap:', error);
+                alert('Error analyzing swap: ' + error.message);
+            }
+        }
+
+        // Run analysis on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            analyzeSwap();
+        });
+
+        // Add input event listeners to auto-update
+        const inputs = ['a_fixed', 'a_float_delta', 'b_fixed', 'b_float_delta', 'swap_fixed_rate', 'swap_floating_rate'];
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', analyzeSwap);
+        });
+    </script>
+</body>
+</html>

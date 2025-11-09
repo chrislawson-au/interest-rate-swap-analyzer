@@ -2,6 +2,12 @@
 
 A Python package for analyzing interest rate swaps, comparing advantages between parties, and visualizing swap outcomes.
 
+## Live Web Demo
+
+Try the interactive web application: **[Interest Rate Swap Analyzer](https://chrislawson-au.github.io/interest-rate-swap-analyzer/)**
+
+The web app is a client-side JavaScript version that runs entirely in your browser - no server required!
+
 ## Installation
 
 ```bash
