@@ -1,13 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interest Rate Swap Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .table-container {
             overflow-x: auto;
@@ -21,14 +27,25 @@
             padding: 0.75rem;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dark th, .dark td {
+            border-bottom-color: #374151;
         }
         th {
             background-color: #f9fafb;
             font-weight: 600;
             color: #374151;
         }
+        .dark th {
+            background-color: #1f2937;
+            color: #e5e7eb;
+        }
         tr:hover {
             background-color: #f9fafb;
+        }
+        .dark tr:hover {
+            background-color: #1f2937;
         }
         .input-group {
             margin-bottom: 1rem;
@@ -39,6 +56,10 @@
             font-weight: 500;
             color: #374151;
             margin-bottom: 0.25rem;
+            transition: color 0.3s ease;
+        }
+        .dark .input-group label {
+            color: #d1d5db;
         }
         .input-group input {
             width: 100%;
@@ -46,6 +67,14 @@
             border: 1px solid #d1d5db;
             border-radius: 0.375rem;
             font-size: 0.875rem;
+            background-color: white;
+            color: #1f2937;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        .dark .input-group input {
+            background-color: #1f2937;
+            border-color: #4b5563;
+            color: #f3f4f6;
         }
         .input-group input:focus {
             outline: none;
@@ -60,18 +89,60 @@
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 2px solid #3b82f6;
+            transition: color 0.3s ease;
+        }
+        .dark .section-header {
+            color: #f3f4f6;
+        }
+        .dark-mode-toggle {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 50;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .dark .dark-mode-toggle {
+            background-color: #1f2937;
+            border-color: #4b5563;
+        }
+        .dark-mode-toggle:hover {
+            background-color: #f9fafb;
+        }
+        .dark .dark-mode-toggle:hover {
+            background-color: #374151;
+        }
+        .icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            display: block;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Dark Mode Toggle -->
+    <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg id="sunIcon" class="icon text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <svg id="moonIcon" class="icon text-gray-700 dark:text-gray-300 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+    </button>
+
     <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <h1 class="text-4xl font-bold text-gray-900 mb-8">Interest Rate Swap Analysis</h1>
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8 transition-colors">Interest Rate Swap Analysis</h1>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <!-- Sidebar -->
-            <div class="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
+            <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
                 <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Party A (Market Rates)</h2>
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 transition-colors">Party A (Market Rates)</h2>
                     <div class="input-group">
                         <label for="a_fixed">Fixed Rate (%)</label>
                         <input type="number" id="a_fixed" step="0.05" value="10.45">
@@ -83,7 +154,7 @@
                 </div>
 
                 <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Party B (Market Rates)</h2>
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 transition-colors">Party B (Market Rates)</h2>
                     <div class="input-group">
                         <label for="b_fixed">Fixed Rate (%)</label>
                         <input type="number" id="b_fixed" step="0.05" value="9.65">
@@ -95,7 +166,7 @@
                 </div>
 
                 <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Swap Settings</h2>
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 transition-colors">Swap Settings</h2>
                     <div class="input-group">
                         <label for="swap_fixed_rate">Swap Fixed Rate (%)</label>
                         <input type="number" id="swap_fixed_rate" step="0.05" value="9.6">
@@ -113,22 +184,22 @@
 
             <!-- Main Content -->
             <div class="lg:col-span-3 space-y-6">
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
                     <h2 class="section-header">Market Rates</h2>
                     <div class="table-container" id="market_rates_table"></div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
                     <h2 class="section-header">Opportunity Analysis</h2>
                     <div class="table-container" id="opportunity_analysis_table"></div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
                     <h2 class="section-header">Swap Details</h2>
                     <div class="table-container" id="swap_details_table"></div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
                     <h2 class="section-header">Party Positions</h2>
                     <div class="table-container" id="party_positions_table"></div>
                 </div>
@@ -137,6 +208,56 @@
     </div>
 
     <script>
+        // Dark Mode Management
+        function initDarkMode() {
+            const htmlElement = document.documentElement;
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            // Check for saved preference or default to system preference
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                htmlElement.classList.add('dark');
+                htmlElement.classList.remove('light');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                htmlElement.classList.remove('dark');
+                htmlElement.classList.add('light');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+
+            // Toggle function
+            darkModeToggle.addEventListener('click', () => {
+                const isDark = htmlElement.classList.contains('dark');
+
+                if (isDark) {
+                    htmlElement.classList.remove('dark');
+                    htmlElement.classList.add('light');
+                    localStorage.setItem('theme', 'light');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    htmlElement.classList.add('dark');
+                    htmlElement.classList.remove('light');
+                    localStorage.setItem('theme', 'dark');
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+            });
+        }
+
+        // Initialize dark mode before page fully loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDarkMode);
+        } else {
+            initDarkMode();
+        }
+
         // Constants
         const NOTIONAL = 1000000.0;
         const START_DATE = new Date();
@@ -496,7 +617,7 @@
         // Helper function to create HTML table
         function createTable(data, transpose = false) {
             if (!data || data.length === 0) {
-                return '<p class="text-gray-500">No data available</p>';
+                return '<p class="text-gray-500 dark:text-gray-400">No data available</p>';
             }
 
             if (transpose) {
