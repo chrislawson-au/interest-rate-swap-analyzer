@@ -53,41 +53,6 @@
         .dark tr:hover {
             background-color: #1f2937;
         }
-        .input-group {
-            margin-bottom: 1rem;
-        }
-        .input-group label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-            margin-bottom: 0.25rem;
-            transition: color 0.3s ease;
-        }
-        .dark .input-group label {
-            color: #d1d5db;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            background-color: white;
-            color: #1f2937;
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-        }
-        .dark .input-group input {
-            background-color: #1f2937;
-            border-color: #4b5563;
-            color: #f3f4f6;
-        }
-        .input-group input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            ring: 2px;
-            ring-color: #3b82f6;
-        }
         .section-header {
             font-size: 1.25rem;
             font-weight: 600;
@@ -542,16 +507,6 @@
                 return this.rateType === 'floating';
             }
 
-            add(other) {
-                if (typeof other === 'number') {
-                    return new InterestRate(this.rate + other, this.rateType);
-                } else if (other instanceof InterestRate) {
-                    const newType = this.isFloating || other.isFloating ? 'floating' : 'fixed';
-                    return new InterestRate(this.rate + other.rate, newType);
-                }
-                throw new Error('Unsupported operand type for add');
-            }
-
             subtract(other) {
                 if (typeof other === 'number') {
                     return new InterestRate(this.rate - other, this.rateType);
@@ -593,20 +548,12 @@
                 return this._floatingRateDelta;
             }
 
-            getFloatingRate(benchmarkRate) {
-                return benchmarkRate + this.floatingRateDelta.rate;
-            }
-
             getRate(type) {
                 if (type === 'fixed') {
                     return this.fixedRate;
                 } else {
                     return this.floatingRateDelta;
                 }
-            }
-
-            toString() {
-                return this.name;
             }
         }
 
@@ -635,15 +582,6 @@
 
             get floatingRateDelta() {
                 return this._floatingRateDelta;
-            }
-
-            calculateFixedLegPayment() {
-                return this.notional * this.fixedRate.rate / 2;
-            }
-
-            calculateFloatingLegPayment(benchmarkRate) {
-                const floatingRate = benchmarkRate + this.floatingRateDelta.rate;
-                return this.notional * floatingRate / 2;
             }
 
             getPayingPositionForParty(party) {
@@ -833,12 +771,6 @@
                         'Floating Rate (Market)': this.partyB.floatingRateDelta.toString()
                     }
                 ];
-            }
-
-            toOpportunityAnalysisData(summary) {
-                return [{
-                    'Total Arbitrage Available': (summary.totalArbitrage * 100).toFixed(2) + '%'
-                }];
             }
 
             toSwapDetailsData(summary) {
@@ -1110,11 +1042,9 @@
                 isPartyAFixedPayer ? 'A Receives' : 'B Receives';
 
             // Update arrow directions based on who pays fixed
-            // Note: orient="auto" handles arrow direction, we just set line coords and color
+            // Note: orient="auto" handles arrow direction automatically
             const fixedArrow = document.getElementById('fixed_arrow_line');
             const floatArrow = document.getElementById('float_arrow_line');
-            fixedArrow.setAttribute('marker-end', 'url(#arrowOrange)');
-            floatArrow.setAttribute('marker-end', 'url(#arrowGreen)');
             if (isPartyAFixedPayer) {
                 // A pays fixed to B: arrow goes left to right
                 fixedArrow.setAttribute('x1', '195');
