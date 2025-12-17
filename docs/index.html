@@ -174,6 +174,155 @@
         .dark .subsection-header {
             color: #9ca3af;
         }
+        /* SVG Diagram Styles */
+        .swap-diagram-svg {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            aspect-ratio: 800 / 300;
+            margin: 0 auto;
+            display: block;
+        }
+        .swap-diagram-svg text {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .swap-diagram-svg .market-label {
+            font-size: 11px;
+            font-weight: 600;
+            fill: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .dark .swap-diagram-svg .market-label {
+            fill: #9ca3af;
+        }
+        .swap-diagram-svg .market-rate {
+            font-size: 12px;
+            font-weight: 500;
+            fill: #374151;
+        }
+        .dark .swap-diagram-svg .market-rate {
+            fill: #d1d5db;
+        }
+        .swap-diagram-svg .market-rate.dimmed {
+            fill: #9ca3af;
+            font-weight: 400;
+        }
+        .dark .swap-diagram-svg .market-rate.dimmed {
+            fill: #6b7280;
+        }
+        .swap-diagram-svg .market-arrow {
+            stroke: #9ca3af;
+            stroke-width: 2;
+            fill: none;
+        }
+        .swap-diagram-svg .party-box {
+            stroke: #3b82f6;
+            stroke-width: 2;
+        }
+        .dark .swap-diagram-svg .party-box {
+            stroke: #60a5fa;
+        }
+        .swap-diagram-svg .party-name {
+            font-size: 16px;
+            font-weight: 700;
+            fill: #1e40af;
+        }
+        .dark .swap-diagram-svg .party-name {
+            fill: #93c5fd;
+        }
+        .swap-diagram-svg .party-role {
+            font-size: 11px;
+            fill: #6b7280;
+            font-style: italic;
+        }
+        .dark .swap-diagram-svg .party-role {
+            fill: #9ca3af;
+        }
+        .swap-diagram-svg .net-box {
+            fill: #f9fafb;
+            stroke: none;
+        }
+        .dark .swap-diagram-svg .net-box {
+            fill: #1f2937;
+        }
+        .swap-diagram-svg .net-label {
+            font-size: 11px;
+            fill: #6b7280;
+        }
+        .dark .swap-diagram-svg .net-label {
+            fill: #9ca3af;
+        }
+        .swap-diagram-svg .net-rate {
+            font-size: 14px;
+            font-weight: 600;
+            fill: #1f2937;
+        }
+        .dark .swap-diagram-svg .net-rate {
+            fill: #f3f4f6;
+        }
+        .swap-diagram-svg .net-comparison {
+            font-size: 10px;
+            fill: #6b7280;
+        }
+        .dark .swap-diagram-svg .net-comparison {
+            fill: #9ca3af;
+        }
+        .swap-diagram-svg .net-benefit {
+            font-size: 12px;
+            font-weight: 600;
+            fill: #059669;
+        }
+        .dark .swap-diagram-svg .net-benefit {
+            fill: #34d399;
+        }
+        .swap-diagram-svg .swap-arrow {
+            stroke-width: 2;
+            fill: none;
+        }
+        .swap-diagram-svg .swap-arrow.fixed {
+            stroke: #d97706;
+        }
+        .swap-diagram-svg .swap-arrow.floating {
+            stroke: #059669;
+        }
+        .swap-diagram-svg .flow-bg.fixed {
+            fill: #fef3c7;
+        }
+        .dark .swap-diagram-svg .flow-bg.fixed {
+            fill: #78350f;
+        }
+        .swap-diagram-svg .flow-bg.floating {
+            fill: #d1fae5;
+        }
+        .dark .swap-diagram-svg .flow-bg.floating {
+            fill: #064e3b;
+        }
+        .swap-diagram-svg .flow-text.fixed {
+            font-size: 11px;
+            font-weight: 600;
+            fill: #92400e;
+        }
+        .dark .swap-diagram-svg .flow-text.fixed {
+            fill: #fcd34d;
+        }
+        .swap-diagram-svg .flow-text.floating {
+            font-size: 11px;
+            font-weight: 600;
+            fill: #065f46;
+        }
+        .dark .swap-diagram-svg .flow-text.floating {
+            fill: #6ee7b7;
+        }
+        .swap-diagram-svg .rate-value {
+            font-size: 13px;
+            font-weight: 700;
+        }
+        @media (max-width: 640px) {
+            .swap-diagram-svg {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -189,6 +338,93 @@
 
     <div class="container mx-auto px-4 py-8 max-w-7xl">
         <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8 transition-colors">Interest Rate Swap Analysis</h1>
+
+        <!-- Swap Flow Diagram (SVG) -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 transition-colors">
+            <h2 class="section-header">Swap Structure</h2>
+            <svg id="swap_diagram" class="swap-diagram-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet">
+                <!-- Definitions -->
+                <defs>
+                    <!-- Arrow markers (orient="auto" handles direction, same shape for both) -->
+                    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#d97706"/>
+                    </marker>
+                    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#059669"/>
+                    </marker>
+                    <!-- Gradients for party boxes -->
+                    <linearGradient id="partyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#eff6ff"/>
+                        <stop offset="100%" style="stop-color:#dbeafe"/>
+                    </linearGradient>
+                    <linearGradient id="partyGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#1e3a5f"/>
+                        <stop offset="100%" style="stop-color:#1e40af"/>
+                    </linearGradient>
+                </defs>
+
+                <!-- Party A Side (centered at x=115) -->
+                <g class="party-a-group">
+                    <!-- Market section -->
+                    <text x="115" y="20" text-anchor="middle" class="market-label">MARKET</text>
+                    <text x="115" y="38" text-anchor="middle" class="market-rate" id="diagram_a_fixed">Pays Fixed: 10.45%</text>
+                    <text x="115" y="54" text-anchor="middle" class="market-rate dimmed" id="diagram_a_float">(Pays Float: S+75)</text>
+                    <!-- Market arrow pointing up (drawn as path with arrowhead) -->
+                    <path d="M115,92 L115,68 M110,73 L115,63 L120,73" class="market-arrow" stroke-linecap="round" stroke-linejoin="round"/>
+
+                    <!-- Party box -->
+                    <rect x="40" y="95" width="150" height="60" rx="8" class="party-box" fill="url(#partyGradient)"/>
+                    <text x="115" y="122" text-anchor="middle" class="party-name">Party A</text>
+                    <text x="115" y="140" text-anchor="middle" class="party-role" id="diagram_a_role">(Fixed Payer)</text>
+
+                    <!-- Net position box -->
+                    <rect x="40" y="170" width="150" height="75" rx="6" class="net-box"/>
+                    <text x="115" y="188" text-anchor="middle" class="net-label">Net Cost:</text>
+                    <text x="115" y="208" text-anchor="middle" class="net-rate" id="diagram_a_net">10.25%</text>
+                    <text x="115" y="224" text-anchor="middle" class="net-comparison" id="diagram_a_vs">(vs 10.45% market)</text>
+                    <text x="115" y="240" text-anchor="middle" class="net-benefit" id="diagram_a_benefit">Benefit: 0.20%</text>
+                </g>
+
+                <!-- Party B Side (centered at x=685) -->
+                <g class="party-b-group">
+                    <!-- Market section -->
+                    <text x="685" y="20" text-anchor="middle" class="market-label">MARKET</text>
+                    <text x="685" y="38" text-anchor="middle" class="market-rate dimmed" id="diagram_b_fixed">(Pays Fixed: 9.65%)</text>
+                    <text x="685" y="54" text-anchor="middle" class="market-rate" id="diagram_b_float">Pays Float: S+25</text>
+                    <!-- Market arrow pointing up (drawn as path with arrowhead) -->
+                    <path d="M685,92 L685,68 M680,73 L685,63 L690,73" class="market-arrow" stroke-linecap="round" stroke-linejoin="round"/>
+
+                    <!-- Party box -->
+                    <rect x="610" y="95" width="150" height="60" rx="8" class="party-box" fill="url(#partyGradient)"/>
+                    <text x="685" y="122" text-anchor="middle" class="party-name">Party B</text>
+                    <text x="685" y="140" text-anchor="middle" class="party-role" id="diagram_b_role">(Floating Payer)</text>
+
+                    <!-- Net position box -->
+                    <rect x="610" y="170" width="150" height="75" rx="6" class="net-box"/>
+                    <text x="685" y="188" text-anchor="middle" class="net-label">Net Cost:</text>
+                    <text x="685" y="208" text-anchor="middle" class="net-rate" id="diagram_b_net">S+55</text>
+                    <text x="685" y="224" text-anchor="middle" class="net-comparison" id="diagram_b_vs">(vs S+25 market)</text>
+                    <text x="685" y="240" text-anchor="middle" class="net-benefit" id="diagram_b_benefit">Benefit: 0.10%</text>
+                </g>
+
+                <!-- Swap Flow Arrows -->
+                <g class="swap-arrows">
+                    <!-- Fixed rate flow -->
+                    <line id="fixed_arrow_line" x1="195" y1="112" x2="605" y2="112" class="swap-arrow fixed" marker-end="url(#arrowOrange)"/>
+                    <rect x="300" y="100" width="200" height="24" rx="4" class="flow-bg fixed"/>
+                    <text x="320" y="116" class="flow-text fixed" id="diagram_fixed_payer">A Pays</text>
+                    <text x="400" y="116" text-anchor="middle" class="flow-text fixed rate-value" id="diagram_fixed_rate">9.60%</text>
+                    <text x="480" y="116" text-anchor="end" class="flow-text fixed" id="diagram_fixed_receiver">B Receives</text>
+
+                    <!-- Floating rate flow -->
+                    <line id="float_arrow_line" x1="605" y1="138" x2="195" y2="138" class="swap-arrow floating" marker-end="url(#arrowGreen)"/>
+                    <rect x="300" y="126" width="200" height="24" rx="4" class="flow-bg floating"/>
+                    <text x="320" y="142" class="flow-text floating" id="diagram_float_receiver">A Receives</text>
+                    <text x="400" y="142" text-anchor="middle" class="flow-text floating rate-value" id="diagram_float_rate">S+10</text>
+                    <text x="480" y="142" text-anchor="end" class="flow-text floating" id="diagram_float_payer">B Pays</text>
+                </g>
+            </svg>
+        </div>
 
         <!-- Two Column Results Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -222,6 +458,14 @@
     </div>
 
     <script>
+        // Update SVG gradients for dark mode
+        function updateSvgDarkMode(isDark) {
+            const partyBoxes = document.querySelectorAll('.party-box');
+            partyBoxes.forEach(box => {
+                box.setAttribute('fill', isDark ? 'url(#partyGradientDark)' : 'url(#partyGradient)');
+            });
+        }
+
         // Dark Mode Management
         function initDarkMode() {
             const htmlElement = document.documentElement;
@@ -238,11 +482,13 @@
                 htmlElement.classList.remove('light');
                 sunIcon.classList.add('hidden');
                 moonIcon.classList.remove('hidden');
+                updateSvgDarkMode(true);
             } else {
                 htmlElement.classList.remove('dark');
                 htmlElement.classList.add('light');
                 sunIcon.classList.remove('hidden');
                 moonIcon.classList.add('hidden');
+                updateSvgDarkMode(false);
             }
 
             // Toggle function
@@ -255,12 +501,14 @@
                     localStorage.setItem('theme', 'light');
                     sunIcon.classList.remove('hidden');
                     moonIcon.classList.add('hidden');
+                    updateSvgDarkMode(false);
                 } else {
                     htmlElement.classList.add('dark');
                     htmlElement.classList.remove('light');
                     localStorage.setItem('theme', 'dark');
                     sunIcon.classList.add('hidden');
                     moonIcon.classList.remove('hidden');
+                    updateSvgDarkMode(true);
                 }
             });
         }
@@ -550,7 +798,7 @@
                         this.interestRateSwap.getRate(
                             this.interestRateSwap.getPayingPositionForParty(party)
                         ).rate
-                        + this.getMarketPayingVsSwapReceivingBenefit(party)
+                        - this.getMarketPayingVsSwapReceivingBenefit(party)
                     )
                 );
             }
@@ -559,7 +807,7 @@
                 return (
                     this.interestRateSwap.getRate(
                         this.interestRateSwap.getPayingPositionForParty(party)
-                    ).rate + this.getMarketPayingVsSwapReceivingBenefit(party)
+                    ).rate - this.getMarketPayingVsSwapReceivingBenefit(party)
                 );
             }
 
@@ -787,6 +1035,137 @@
             return { analyzer, summary };
         }
 
+        // Update the swap diagram with current values
+        function updateDiagram(analyzer, summary) {
+            const swap = analyzer.interestRateSwap;
+            const oppAnalyzer = analyzer.opportunityAnalyzer;
+
+            // Get party analysis data
+            const partyAAnalysis = summary.partyAAnalysis;
+            const partyBAnalysis = summary.partyBAnalysis;
+
+            // Determine comparative advantages
+            const partyAAdvantage = oppAnalyzer.comparativeAdvantages['Party A'];
+            const partyBAdvantage = oppAnalyzer.comparativeAdvantages['Party B'];
+
+            // Party A market rates (both shown, unused one dimmed with parentheses)
+            const partyAFixedEl = document.getElementById('diagram_a_fixed');
+            const partyAFloatEl = document.getElementById('diagram_a_float');
+            const aFixedRate = analyzer.partyA.fixedRate.toString();
+            const aFloatRate = analyzer.partyA.floatingRateDelta.toString();
+
+            if (partyAAdvantage.type === 'fixed') {
+                // A borrows at fixed rate (their advantage)
+                partyAFixedEl.textContent = `Pays Fixed: ${aFixedRate}`;
+                partyAFloatEl.textContent = `(Pays Float: ${aFloatRate})`;
+                partyAFixedEl.classList.remove('dimmed');
+                partyAFloatEl.classList.add('dimmed');
+            } else {
+                // A borrows at floating rate (their advantage)
+                partyAFixedEl.textContent = `(Pays Fixed: ${aFixedRate})`;
+                partyAFloatEl.textContent = `Pays Float: ${aFloatRate}`;
+                partyAFixedEl.classList.add('dimmed');
+                partyAFloatEl.classList.remove('dimmed');
+            }
+
+            // Party B market rates (both shown, unused one dimmed with parentheses)
+            const partyBFixedEl = document.getElementById('diagram_b_fixed');
+            const partyBFloatEl = document.getElementById('diagram_b_float');
+            const bFixedRate = analyzer.partyB.fixedRate.toString();
+            const bFloatRate = analyzer.partyB.floatingRateDelta.toString();
+
+            if (partyBAdvantage.type === 'fixed') {
+                // B borrows at fixed rate (their advantage)
+                partyBFixedEl.textContent = `Pays Fixed: ${bFixedRate}`;
+                partyBFloatEl.textContent = `(Pays Float: ${bFloatRate})`;
+                partyBFixedEl.classList.remove('dimmed');
+                partyBFloatEl.classList.add('dimmed');
+            } else {
+                // B borrows at floating rate (their advantage)
+                partyBFixedEl.textContent = `(Pays Fixed: ${bFixedRate})`;
+                partyBFloatEl.textContent = `Pays Float: ${bFloatRate}`;
+                partyBFixedEl.classList.add('dimmed');
+                partyBFloatEl.classList.remove('dimmed');
+            }
+
+            // Party roles
+            const isPartyAFixedPayer = swap.fixedRatePayer.name === 'Party A';
+            document.getElementById('diagram_a_role').textContent =
+                isPartyAFixedPayer ? '(Fixed Payer)' : '(Floating Payer)';
+            document.getElementById('diagram_b_role').textContent =
+                isPartyAFixedPayer ? '(Floating Payer)' : '(Fixed Payer)';
+
+            // Swap flow rates and payer/receiver labels
+            document.getElementById('diagram_fixed_rate').textContent = swap.fixedRate.toString();
+            document.getElementById('diagram_float_rate').textContent = swap.floatingRateDelta.toString();
+
+            // Update payer/receiver labels based on who pays fixed
+            document.getElementById('diagram_fixed_payer').textContent =
+                isPartyAFixedPayer ? 'A Pays' : 'B Pays';
+            document.getElementById('diagram_fixed_receiver').textContent =
+                isPartyAFixedPayer ? 'B Receives' : 'A Receives';
+            document.getElementById('diagram_float_payer').textContent =
+                isPartyAFixedPayer ? 'B Pays' : 'A Pays';
+            document.getElementById('diagram_float_receiver').textContent =
+                isPartyAFixedPayer ? 'A Receives' : 'B Receives';
+
+            // Update arrow directions based on who pays fixed
+            // Note: orient="auto" handles arrow direction, we just set line coords and color
+            const fixedArrow = document.getElementById('fixed_arrow_line');
+            const floatArrow = document.getElementById('float_arrow_line');
+            fixedArrow.setAttribute('marker-end', 'url(#arrowOrange)');
+            floatArrow.setAttribute('marker-end', 'url(#arrowGreen)');
+            if (isPartyAFixedPayer) {
+                // A pays fixed to B: arrow goes left to right
+                fixedArrow.setAttribute('x1', '195');
+                fixedArrow.setAttribute('x2', '605');
+                // B pays float to A: arrow goes right to left
+                floatArrow.setAttribute('x1', '605');
+                floatArrow.setAttribute('x2', '195');
+            } else {
+                // B pays fixed to A: arrow goes right to left
+                fixedArrow.setAttribute('x1', '605');
+                fixedArrow.setAttribute('x2', '195');
+                // A pays float to B: arrow goes left to right
+                floatArrow.setAttribute('x1', '195');
+                floatArrow.setAttribute('x2', '605');
+            }
+
+            // Net positions and benefits
+            const partyANetCost = partyAAnalysis.totalCost;
+            const partyBNetCost = partyBAnalysis.totalCost;
+
+            // Format net position based on what type they end up with
+            // Party borrows at their advantage, swaps to get their desired rate type
+            const partyANetRate = new InterestRate(partyANetCost,
+                partyAAdvantage.type === 'fixed' ? 'floating' : 'fixed');
+            const partyBNetRate = new InterestRate(partyBNetCost,
+                partyBAdvantage.type === 'fixed' ? 'floating' : 'fixed');
+
+            document.getElementById('diagram_a_net').textContent = partyANetRate.toString();
+            document.getElementById('diagram_b_net').textContent = partyBNetRate.toString();
+
+            // What they would have paid in market for their desired rate type
+            const partyAMarketAlternative = analyzer.partyA.getRate(
+                partyAAdvantage.type === 'fixed' ? 'floating' : 'fixed');
+            const partyBMarketAlternative = analyzer.partyB.getRate(
+                partyBAdvantage.type === 'fixed' ? 'floating' : 'fixed');
+
+            document.getElementById('diagram_a_vs').textContent =
+                `(vs ${partyAMarketAlternative.toString()} market)`;
+            document.getElementById('diagram_b_vs').textContent =
+                `(vs ${partyBMarketAlternative.toString()} market)`;
+
+            // Benefits
+            const partyABenefit = partyAAnalysis.marketImprovement * 100;
+            const partyBBenefit = partyBAnalysis.marketImprovement * 100;
+
+            document.getElementById('diagram_a_benefit').textContent =
+                `Benefit: ${partyABenefit.toFixed(2)}%`;
+            document.getElementById('diagram_b_benefit').textContent =
+                `Benefit: ${partyBBenefit.toFixed(2)}%`;
+        }
+
         // Update only read-only parts (called on input change to avoid focus loss)
         function updateCalculations() {
             try {
@@ -799,6 +1178,9 @@
                 // Update Party Positions table (read-only, safe to rebuild)
                 document.getElementById('party_positions_table').innerHTML =
                     createTable(analyzer.toPartyPositionsData(summary), { transpose: true });
+
+                // Update the diagram
+                updateDiagram(analyzer, summary);
 
             } catch (error) {
                 console.error('Error updating calculations:', error);
