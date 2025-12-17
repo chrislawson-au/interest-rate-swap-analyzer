@@ -402,9 +402,13 @@
 
                 <!-- Total Arbitrage Highlight Box -->
                 <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between mb-2">
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Arbitrage Available:</span>
                         <span id="total_arbitrage" class="text-xl font-bold text-blue-600 dark:text-blue-400">0.00%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600 dark:text-gray-400">Optimal Fixed Payer:</span>
+                        <span id="optimal_fixed_payer" class="font-medium text-green-600 dark:text-green-400">Party A</span>
                     </div>
                 </div>
             </div>
@@ -412,6 +416,19 @@
             <!-- Swap Analysis (Right Column) -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors">
                 <h2 class="section-header">Swap Analysis</h2>
+
+                <!-- Fixed Payer Selection -->
+                <div class="mb-4">
+                    <label for="fixed_payer_select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Select Fixed Rate Payer:
+                    </label>
+                    <select id="fixed_payer_select"
+                            class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            onchange="handleFixedPayerChange(this)">
+                        <option value="Party A">Party A pays fixed</option>
+                        <option value="Party B">Party B pays fixed</option>
+                    </select>
+                </div>
 
                 <h3 class="subsection-header">Swap Terms <span class="text-blue-500 dark:text-blue-400">(editable)</span></h3>
                 <div class="table-container mb-6" id="swap_details_table"></div>
@@ -713,14 +730,23 @@
                 };
             }
 
+            // Get market borrowing position based on swap position
+            // Fixed payer in swap → borrows floating in market (and vice versa)
+            getMarketPositionForParty(party) {
+                const swapPayingPosition = this.interestRateSwap.getPayingPositionForParty(party);
+                return swapPayingPosition === 'fixed' ? 'floating' : 'fixed';
+            }
+
             analyzeParty(party) {
                 const payingPosition = this.interestRateSwap.getPayingPositionForParty(party);
                 const receivingPosition = this.interestRateSwap.getReceivingPositionForParty(party);
+                const marketPosition = this.getMarketPositionForParty(party);
                 const benefit = this.getMarketPayingVsSwapReceivingBenefit(party);
 
                 return {
                     party: party,
                     comparativeAdvantage: this.opportunityAnalyzer.comparativeAdvantages[party.name],
+                    marketPosition: marketPosition,  // What they borrow in market
                     marketPayingVsSwapReceivingBenefit: benefit,
                     payingPosition: payingPosition,
                     receivingPosition: receivingPosition,
@@ -730,32 +756,34 @@
             }
 
             calculateMarketImprovement(party) {
-                return (
-                    party.getRate(this.opportunityAnalyzer.comparativeDisadvantages[party.name].type).rate
-                    - (
-                        this.interestRateSwap.getRate(
-                            this.interestRateSwap.getPayingPositionForParty(party)
-                        ).rate
-                        - this.getMarketPayingVsSwapReceivingBenefit(party)
-                    )
-                );
+                // Compare net cost to what they would pay in market for their desired rate type
+                // Desired rate type = opposite of market position (what they're converting TO via swap)
+                const marketPosition = this.getMarketPositionForParty(party);
+                const desiredPosition = marketPosition === 'fixed' ? 'floating' : 'fixed';
+                const directMarketRate = party.getRate(desiredPosition).rate;
+                const netCost = this.calculateTotalCost(party);
+                return directMarketRate - netCost;
             }
 
             calculateTotalCost(party) {
-                return (
-                    this.interestRateSwap.getRate(
-                        this.interestRateSwap.getPayingPositionForParty(party)
-                    ).rate - this.getMarketPayingVsSwapReceivingBenefit(party)
-                );
+                // Net cost = swap_paying_rate + market_borrowing_rate - swap_receiving_rate
+                const swapPayingRate = this.interestRateSwap.getRate(
+                    this.interestRateSwap.getPayingPositionForParty(party)
+                ).rate;
+                const marketBorrowingRate = party.getRate(this.getMarketPositionForParty(party)).rate;
+                const swapReceivingRate = this.interestRateSwap.getRate(
+                    this.interestRateSwap.getReceivingPositionForParty(party)
+                ).rate;
+                return swapPayingRate + marketBorrowingRate - swapReceivingRate;
             }
 
             getMarketPayingVsSwapReceivingBenefit(party) {
-                return -(
-                    party.getRate(this.opportunityAnalyzer.comparativeAdvantages[party.name].type).rate
-                    - this.interestRateSwap.getRate(
-                        this.interestRateSwap.getReceivingPositionForParty(party)
-                    ).rate
-                );
+                // Benefit from receiving swap rate vs paying market rate
+                const marketRate = party.getRate(this.getMarketPositionForParty(party)).rate;
+                const swapReceivingRate = this.interestRateSwap.getRate(
+                    this.interestRateSwap.getReceivingPositionForParty(party)
+                ).rate;
+                return swapReceivingRate - marketRate;
             }
 
             toMarketRatesData() {
@@ -829,7 +857,8 @@
             b_fixed: 9.65,
             b_float_delta: 0.25,
             swap_fixed_rate: 9.6,
-            swap_floating_rate: 0.10
+            swap_floating_rate: 0.10,
+            fixed_payer: 'Party A'  // Manual selection for teaching
         };
 
         // Handle editable input change - only updates read-only parts to avoid focus loss
@@ -841,6 +870,12 @@
                 inputValues[field] = value;
                 updateCalculations();  // Only update read-only parts, not editable tables
             }
+        }
+
+        // Handle fixed payer selection change
+        function handleFixedPayerChange(selectElement) {
+            inputValues.fixed_payer = selectElement.value;
+            updateCalculations();
         }
 
         // Helper function to create HTML table with optional editable cells
@@ -944,9 +979,8 @@
             const partyA = new Party('Party A', aFixed, aFloatDelta, 'fixed');
             const partyB = new Party('Party B', bFixed, bFloatDelta, 'floating');
 
-            // Determine who pays fixed
-            const opportunityAnalyzer = new OpportunityAnalyzer(partyA, partyB);
-            const fixedPayer = opportunityAnalyzer.findFixedRatePayer();
+            // Use manual selection for fixed payer (for teaching)
+            const fixedPayer = inputValues.fixed_payer === 'Party A' ? partyA : partyB;
             const floatingPayer = fixedPayer === partyA ? partyB : partyA;
 
             // Create swap
@@ -964,21 +998,24 @@
             const analyzer = new InterestRateSwapAnalyzer(partyA, partyB, swap);
             const summary = analyzer.analyze();
 
-            return { analyzer, summary };
+            // Get optimal fixed payer based on comparative advantage
+            const opportunityAnalyzer = new OpportunityAnalyzer(partyA, partyB);
+            const optimalFixedPayer = opportunityAnalyzer.findFixedRatePayer();
+
+            return { analyzer, summary, optimalFixedPayer };
         }
 
         // Update the swap diagram with current values
         function updateDiagram(analyzer, summary) {
             const swap = analyzer.interestRateSwap;
-            const oppAnalyzer = analyzer.opportunityAnalyzer;
 
-            // Get party analysis data
+            // Get party analysis data (includes market position derived from swap)
             const partyAAnalysis = summary.partyAAnalysis;
             const partyBAnalysis = summary.partyBAnalysis;
 
-            // Determine comparative advantages
-            const partyAAdvantage = oppAnalyzer.comparativeAdvantages['Party A'];
-            const partyBAdvantage = oppAnalyzer.comparativeAdvantages['Party B'];
+            // Get market positions (derived from swap positions)
+            const partyAMarketPos = partyAAnalysis.marketPosition;
+            const partyBMarketPos = partyBAnalysis.marketPosition;
 
             // Party A market rates (both shown, unused one dimmed with parentheses)
             const partyAFixedEl = document.getElementById('diagram_a_fixed');
@@ -986,14 +1023,14 @@
             const aFixedRate = analyzer.partyA.fixedRate.toString();
             const aFloatRate = analyzer.partyA.floatingRateDelta.toString();
 
-            if (partyAAdvantage.type === 'fixed') {
-                // A borrows at fixed rate (their advantage)
+            if (partyAMarketPos === 'fixed') {
+                // A borrows at fixed rate in market
                 partyAFixedEl.textContent = `Pays Fixed: ${aFixedRate}`;
                 partyAFloatEl.textContent = `(Pays Float: ${aFloatRate})`;
                 partyAFixedEl.classList.remove('dimmed');
                 partyAFloatEl.classList.add('dimmed');
             } else {
-                // A borrows at floating rate (their advantage)
+                // A borrows at floating rate in market
                 partyAFixedEl.textContent = `(Pays Fixed: ${aFixedRate})`;
                 partyAFloatEl.textContent = `Pays Float: ${aFloatRate}`;
                 partyAFixedEl.classList.add('dimmed');
@@ -1006,14 +1043,14 @@
             const bFixedRate = analyzer.partyB.fixedRate.toString();
             const bFloatRate = analyzer.partyB.floatingRateDelta.toString();
 
-            if (partyBAdvantage.type === 'fixed') {
-                // B borrows at fixed rate (their advantage)
+            if (partyBMarketPos === 'fixed') {
+                // B borrows at fixed rate in market
                 partyBFixedEl.textContent = `Pays Fixed: ${bFixedRate}`;
                 partyBFloatEl.textContent = `(Pays Float: ${bFloatRate})`;
                 partyBFixedEl.classList.remove('dimmed');
                 partyBFloatEl.classList.add('dimmed');
             } else {
-                // B borrows at floating rate (their advantage)
+                // B borrows at floating rate in market
                 partyBFixedEl.textContent = `(Pays Fixed: ${bFixedRate})`;
                 partyBFloatEl.textContent = `Pays Float: ${bFloatRate}`;
                 partyBFixedEl.classList.add('dimmed');
@@ -1032,14 +1069,15 @@
             document.getElementById('diagram_float_rate').textContent = swap.floatingRateDelta.toString();
 
             // Update payer/receiver labels based on who pays fixed
+            // Left position (x=320) = Party A's action, Right position (x=480) = Party B's action
             document.getElementById('diagram_fixed_payer').textContent =
-                isPartyAFixedPayer ? 'A Pays' : 'B Pays';
+                isPartyAFixedPayer ? 'A Pays' : 'A Receives';
             document.getElementById('diagram_fixed_receiver').textContent =
-                isPartyAFixedPayer ? 'B Receives' : 'A Receives';
-            document.getElementById('diagram_float_payer').textContent =
-                isPartyAFixedPayer ? 'B Pays' : 'A Pays';
+                isPartyAFixedPayer ? 'B Receives' : 'B Pays';
             document.getElementById('diagram_float_receiver').textContent =
-                isPartyAFixedPayer ? 'A Receives' : 'B Receives';
+                isPartyAFixedPayer ? 'A Receives' : 'A Pays';
+            document.getElementById('diagram_float_payer').textContent =
+                isPartyAFixedPayer ? 'B Pays' : 'B Receives';
 
             // Update arrow directions based on who pays fixed
             // Note: orient="auto" handles arrow direction automatically
@@ -1065,21 +1103,19 @@
             const partyANetCost = partyAAnalysis.totalCost;
             const partyBNetCost = partyBAnalysis.totalCost;
 
-            // Format net position based on what type they end up with
-            // Party borrows at their advantage, swaps to get their desired rate type
-            const partyANetRate = new InterestRate(partyANetCost,
-                partyAAdvantage.type === 'fixed' ? 'floating' : 'fixed');
-            const partyBNetRate = new InterestRate(partyBNetCost,
-                partyBAdvantage.type === 'fixed' ? 'floating' : 'fixed');
+            // Format net position based on what type they end up with after swap
+            // Net rate type = opposite of market position (what they convert TO)
+            const partyANetRateType = partyAMarketPos === 'fixed' ? 'floating' : 'fixed';
+            const partyBNetRateType = partyBMarketPos === 'fixed' ? 'floating' : 'fixed';
+            const partyANetRate = new InterestRate(partyANetCost, partyANetRateType);
+            const partyBNetRate = new InterestRate(partyBNetCost, partyBNetRateType);
 
             document.getElementById('diagram_a_net').textContent = partyANetRate.toString();
             document.getElementById('diagram_b_net').textContent = partyBNetRate.toString();
 
-            // What they would have paid in market for their desired rate type
-            const partyAMarketAlternative = analyzer.partyA.getRate(
-                partyAAdvantage.type === 'fixed' ? 'floating' : 'fixed');
-            const partyBMarketAlternative = analyzer.partyB.getRate(
-                partyBAdvantage.type === 'fixed' ? 'floating' : 'fixed');
+            // What they would have paid in market for their desired rate type (for comparison)
+            const partyAMarketAlternative = analyzer.partyA.getRate(partyANetRateType);
+            const partyBMarketAlternative = analyzer.partyB.getRate(partyBNetRateType);
 
             document.getElementById('diagram_a_vs').textContent =
                 `(vs ${partyAMarketAlternative.toString()} market)`;
@@ -1099,7 +1135,16 @@
         // Update only read-only parts (called on input change to avoid focus loss)
         function updateCalculations() {
             try {
-                const { analyzer, summary } = createAnalysis();
+                const { analyzer, summary, optimalFixedPayer } = createAnalysis();
+
+                // Update Optimal Fixed Payer indicator
+                const optimalEl = document.getElementById('optimal_fixed_payer');
+                optimalEl.textContent = optimalFixedPayer.name;
+                // Highlight if current selection matches optimal
+                const isOptimal = inputValues.fixed_payer === optimalFixedPayer.name;
+                optimalEl.className = isOptimal
+                    ? 'font-medium text-green-600 dark:text-green-400'
+                    : 'font-medium text-yellow-600 dark:text-yellow-400';
 
                 // Update Total Arbitrage in highlight box
                 document.getElementById('total_arbitrage').textContent =
